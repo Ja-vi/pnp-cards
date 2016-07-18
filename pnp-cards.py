@@ -23,6 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 from sys import argv
 import json
 import math
+from copy import deep_copy
 
 #Graphics
 from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap
@@ -46,33 +47,94 @@ Formato del fichero de modos en json:
 [ [NombreDeLaConfiguracion, QuieresBorde?, color (0,1) , EsquinasRedondeadas?, Formato (0,1,2), N,M], [...], ... ]
 """
 
+class State(object):
+	"""Each of the states saved in a history"""
+	def __init__(self, obj, msg=None):
+		"""*obj* is the object to freeze in this state, *msg* the status message"""
+		self.obj = deep_copy(obj)
+		self.msg = msg
+
+	def get_obj(self):
+		"""Returns a copy of the object and the message preserving the state intact"""
+		return deep_copy(obj)
+
+	def get_msg(self):
+		return msg
+
+class History(object):
+	"""Keeps all the states of a given object"""
+	def __init__(self, obj):
+		"""*card* to keep track here"""
+		self.obj = obj
+		self.states = [State(obj, "Card created")]
+		self.current_state = 1
+
+	def track(self, msg="Default message")
+		"""Add a new state to the states list, just after the current state"""
+		while self.current_state < len(self.states):
+			self.states.pop()
+		self.states.append(State(self.obj), msg)
+		self.current_state += 1
+
+	def undo(self):
+		"""Undo one action"""
+		if self.current_state > 1:
+			self.current_state -= 1
+
+	def redo(self):
+		"""Redo one action"""
+		if self.current_state < len(self.states):
+			self.current_state += 1
+
+	def msg_current(self):
+		return self.states[self.current_state - 1].get_msg()
+
+
+	def get_current(self)
+		return self.states[self.current_state - 1].get_obj()
+
 class Card(object):
 	"""Individual object containing an image and actions to manipulate it"""
-	pass
+	def __self__(self, img):
+		self.img = img
+		self.history = History(self.img)
+
+	def undo(self):
+		self.history.undo()
+		self.img = self.history.get_current()
 
 class Deck(object):
 	"""Container for the cards and groupal actions"""
 	def __init__(self):
 		self.cards = []
+		self.history = History(self.cards)
+		self.undo_stack = []
 
-class History(object):
-	"""Save and reload the state of the deck, useful to track changes
-	and undo/redo capabilities"""
-	def __init__(self, deck):
-		"""*deck* to relate this history"""
-		self.deck = deck
+	def load_from_pdf(self, file, cards_row=1, cards_col=1):
+		"""Loads all the cards from a pdf with pages compound of images"""
+		#for each page in the pdf
+		# self.load_from_img(Img(page), cards_row, cards_col)
+		pass
+
+	def load_from_img(self, img, cards_row=1, cards_col=1):
+		"""Loads all the cards from a compound image"""
+		pass
+
+	def load(self, filename, cards_row=1, cards_col=1):
+		if filename.endswith(".pdf"):
+			self.load_from_pdf(f, cards_row, cards_col)
+		else:
+			self.load_from_image(Image(filename = filename), cards_row, cards_col)
+		self.history.track("Loaded Images")
+
+	def empty(self):
+		while len(self.cards) > 0:
+			self.cards.pop()
+		self.history.track("Emptied cards")
 
 	def undo(self):
-		"""Undo one action"""
-		pass
-
-	def redo(self):
-		"""Redo one action"""
-		pass
-
-	def save(self):
-		"""Save an image of the current deck status"""
-		pass
+		self.history.undo()
+		self.cards = self.history.get_current()
 
 
 ################## OLD #####################
