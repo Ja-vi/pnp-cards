@@ -62,17 +62,21 @@ class State(object):
 		return msg
 
 class History(object):
-	"""Keeps all the states of a given object"""
+	"""Keeps a number of states for a given object"""
 	def __init__(self, obj):
 		"""*card* to keep track here"""
 		self.obj = obj
 		self.states = [State(obj, "Card created")]
 		self.current_state = 1
+		self.length = 50
 
 	def track(self, msg="Default message")
 		"""Add a new state to the states list, just after the current state"""
 		while self.current_state < len(self.states):
 			self.states.pop()
+		if len(self.states) == 50:
+			self.states.pop(0)
+			self.current.state -= 1
 		self.states.append(State(self.obj), msg)
 		self.current_state += 1
 
