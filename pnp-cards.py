@@ -93,26 +93,63 @@ class History(object):
 	def msg_current(self):
 		return self.states[self.current_state - 1].get_msg()
 
-
 	def get_current(self)
 		return self.states[self.current_state - 1].get_obj()
+
+class Border(object):
+	"""Represents a border for the cards, it can be in diferent colours"""
+	black = "black"
+	white = "white"
+
+	def __init__(self, colour, wide):
+		"""Init the border with a specific *colour* and *wide*"""
+		self.colour = colour
+		self.wide = wide
 
 class Card(object):
 	"""Individual object containing an image and actions to manipulate it"""
 	def __self__(self, img):
 		self.img = img
 		self.history = History(self.img)
+		self.border = None
 
 	def undo(self):
 		self.history.undo()
 		self.img = self.history.get_current()
 
+	def reset_coord(self):
+		self.img.reset_coords()
+
+	def trim(self, fuzz):
+		self.img.trim(fuzz = fuzz)
+		self.reset_coords()
+
+	def round_corners(self):
+		pass
+
+	def set_border(self, border):
+		self.border = border
+		self.img.border(self.border.colour, self.border.wide, self.border.wide)
+
+	def crop(self, *args, top, bottom, left, right, **kwargs):
+		self.img.crop(left = left, top = top, right = right, bottom = bottom)
+		self.reset_coords()
+
+	def del_border(self):
+		if border is not None:
+			w = self.border.wide
+			self.crop(top=w, bottom=w, right=w, left=w)
+			self.border = None
+
+
 class Deck(object):
-	"""Container for the cards and groupal actions"""
-	def __init__(self):
+	"""Container for the cards and groupal actions, *notify_progress* if provided
+	will be called after every card action for groupal actions"""
+	def __init__(self, notify_progress=None):
 		self.cards = []
 		self.history = History(self.cards)
 		self.undo_stack = []
+		self.notify = notify_progress
 
 	def load_from_pdf(self, file, cards_row=1, cards_col=1):
 		"""Loads all the cards from a pdf with pages compound of images"""
@@ -134,62 +171,69 @@ class Deck(object):
 	def empty(self):
 		while len(self.cards) > 0:
 			self.cards.pop()
+			self.notify()
 		self.history.track("Emptied cards")
 
 	def undo(self):
 		self.history.undo()
 		self.cards = self.history.get_current()
 
+	def trim(fuzz = fuzz):
+		for c in self.cards:
+			c.trim(fuzz)
+			self.notify()
+
+
 
 ################## OLD #####################
 
 class ConvertAndHold:
-	def __init__(self, parent = None):
-		self.history = [[]]
-		self.maxhist = 0
-		self.currenthist = 0
-		self.parent = parent
-		self.clear()
+#	def __init__(self, parent = None):
+#		self.history = [[]]
+#		self.maxhist = 0
+#		self.currenthist = 0
+#		self.parent = parent
+#		self.clear()
 
-	def clear(self):
-		self.basename = None
-		self.png = []
+#	def clear(self):
+#		self.basename = None
+#		self.png = []
 
-	def saveHistory(self):
-		while self.maxhist > self.currenthist:
-			print "Borrando: %r" % len(self.history)
-			self.maxhist -= 1
-			self.history.pop()
-		self.history.append(self.getPngList())
-		self.maxhist += 1
-		self.currenthist += 1
+#	def saveHistory(self):
+#		while self.maxhist > self.currenthist:
+#			print "Borrando: %r" % len(self.history)
+#			self.maxhist -= 1
+#			self.history.pop()
+#		self.history.append(self.getPngList())
+#		self.maxhist += 1
+#		self.currenthist += 1
 
-	def undo(self):
-		if self.currenthist > 0:
-			self.currenthist -= 1
-			self.setPngList(self.history[self.currenthist])
-			self.parent.updatePreview()
-		self.parent.say("Paso " + str(self.currenthist + 1) + " de " + str(len(self.history)))
+#	def undo(self):
+#		if self.currenthist > 0:
+#			self.currenthist -= 1
+#			self.setPngList(self.history[self.currenthist])
+#			self.parent.updatePreview()
+#		self.parent.say("Paso " + str(self.currenthist + 1) + " de " + str(len(self.history)))
 
-	def redo(self):
-		if self.currenthist < self.maxhist:
-			self.currenthist += 1
-			self.setPngList(self.history[self.currenthist])
-			self.parent.updatePreview()
-		self.parent.say("Paso " + str(self.currenthist + 1) + " de " + str(len(self.history)))
+#	def redo(self):
+#		if self.currenthist < self.maxhist:
+#			self.currenthist += 1
+#			self.setPngList(self.history[self.currenthist])
+#			self.parent.updatePreview()
+#		self.parent.say("Paso " + str(self.currenthist + 1) + " de " + str(len(self.history)))
 
-	def imgImport(self, filenames):
-		self.clear()
-		self.parent.resetPercent()
-		self.parent.say("Abriendo")
-		for el2 in filenames:
-			el = str(el2)
-			if el.rfind(".pdf") > 0:
-				self.pdfToPng(el)
-			else:
-				self.png.append(Image(filename = el))
-			self.parent.nextPercent(filenames)
-		self.parent.completePercent()
+#	def imgImport(self, filenames):
+#		self.clear()
+#		self.parent.resetPercent()
+#		self.parent.say("Abriendo")
+#		for el2 in filenames:
+#			el = str(el2)
+#			if el.rfind(".pdf") > 0:
+#				self.pdfToPng(el)
+#			else:
+#				self.png.append(Image(filename = el))
+#			self.parent.nextPercent(filenames)
+#		self.parent.completePercent()
 
 	def pdfToPng(self, pdf):
 		im = Image(file=open(pdf))
@@ -199,22 +243,22 @@ class ConvertAndHold:
 			self.parent.nextPercent(im.sequence)
 		self.parent.completePercent()
 
-	def getPngList(self):
-		return [el.clone() for el in self.png]
+#	def getPngList(self):
+#		return [el.clone() for el in self.png]
 
-	def setPngList(self, pngs):
-		self.png = [el.clone() for el in pngs]
+#	def setPngList(self, pngs):
+#		self.png = [el.clone() for el in pngs]
 
-	def trimAll(self, um):
-		self.parent.resetPercent()
-		for el in self.png:
-			el.trim(fuzz = um)
-			self.parent.nextPercent()
-			el.reset_coords()
-		self.parent.completePercent()
+#	def trimAll(self, um):
+#		self.parent.resetPercent()
+#		for el in self.png:
+#			el.trim(fuzz = um)
+#			self.parent.nextPercent()
+#			el.reset_coords()
+#		self.parent.completePercent()
 
-	def setBaseName(self, name):
-		self.basename = name
+#	def setBaseName(self, name):
+#		self.basename = name
 
 	def writePngFiles(self):
 		if self.basename != None:
@@ -262,36 +306,36 @@ class MainWindow(QMainWindow, Central):
 		self.quitar_boton.clicked.connect(self.recortarBorde)
 		self.auto_boton.clicked.connect(self.myTrim)
 
-	def myTrim(self):
-		umb = self.umbral_spin.value()
-		if self.todas_radio.isChecked():
-			self.cv.trimAll(umb)
-		else:
-			self.cv.png[self.preview_slider.value()].trim(fuzz = umb)
-			self.cv.png[self.preview_slider.value()].reset_coords()
-		self.updatePreview()
-		self.cv.saveHistory()
+#	def myTrim(self):
+#		umb = self.umbral_spin.value()
+#		if self.todas_radio.isChecked():
+#			self.cv.trimAll(umb)
+#		else:
+#			self.cv.png[self.preview_slider.value()].trim(fuzz = umb)
+#			self.cv.png[self.preview_slider.value()].reset_coords()
+#		self.updatePreview()
+#		self.cv.saveHistory()
 
-	def recortarBorde(self):
-		if self.todas_radio.isChecked():
-			self.resetPercent()
-			for el in self.cv.png:
-				w, h = el.size
-				ri = w - self.right_spin.value()
-				bo = h - self.bottom_spin.value()
-				el.crop(left = self.left_spin.value(), top = self.top_spin.value(), right = ri, bottom = bo)
-				el.reset_coords()
-				self.nextPercent()
-			self.completePercent()
-		else:
-			el = self.cv.png[self.preview_slider.value()]
-			w, h = el.size
-			ri = w - self.right_spin.value()
-			bo = h - self.bottom_spin.value()
-			el.crop(left = self.left_spin.value(), top = self.top_spin.value(), right = ri, bottom = bo)
-			el.reset_coords()
-		self.updatePreview()
-		self.cv.saveHistory()
+#	def recortarBorde(self):
+#		if self.todas_radio.isChecked():
+#			self.resetPercent()
+#			for el in self.cv.png:
+#				w, h = el.size
+#				ri = w - self.right_spin.value()
+#				bo = h - self.bottom_spin.value()
+#				el.crop(left = self.left_spin.value(), top = self.top_spin.value(), right = ri, bottom = bo)
+#				el.reset_coords()
+#				self.nextPercent()
+#			self.completePercent()
+#		else:
+#			el = self.cv.png[self.preview_slider.value()]
+#			w, h = el.size
+#			ri = w - self.right_spin.value()
+#			bo = h - self.bottom_spin.value()
+#			el.crop(left = self.left_spin.value(), top = self.top_spin.value(), right = ri, bottom = bo)
+#			el.reset_coords()
+#		self.updatePreview()
+#		self.cv.saveHistory()
 
 	def split(self, im, n, m):
 		width, hight = im.size
@@ -351,19 +395,19 @@ class MainWindow(QMainWindow, Central):
 			self.updatePreview(-1)
 		self.cv.saveHistory()
 
-	def ponerBordeNegro(self):
-		tam = self.border_spin.value()
-		for im in self.cv.png:
-			im.border(Color("black"), tam, tam)
-		self.updatePreview()
-		self.cv.saveHistory()
+#	def ponerBordeNegro(self):
+#		tam = self.border_spin.value()
+#		for im in self.cv.png:
+#			im.border(Color("black"), tam, tam)
+#		self.updatePreview()
+#		self.cv.saveHistory()
 
-	def ponerBordeBlanco(self):
-		tam = self.border_spin.value()
-		for im in self.cv.png:
-			im.border(Color("white"), tam, tam)
-		self.updatePreview()
-		self.cv.saveHistory()
+#	def ponerBordeBlanco(self):
+#		tam = self.border_spin.value()
+#		for im in self.cv.png:
+#			im.border(Color("white"), tam, tam)
+#		self.updatePreview()
+#		self.cv.saveHistory()
 
 	def say(self, text):
 		self.msg_label.setText(text)
