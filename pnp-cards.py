@@ -74,7 +74,7 @@ class History(object):
 		"""Add a new state to the states list, just after the current state"""
 		while self.current_state < len(self.states):
 			self.states.pop()
-		if len(self.states) == 50:
+		if len(self.states) == self.length:
 			self.states.pop(0)
 			self.current.state -= 1
 		self.states.append(State(self.obj), msg)
@@ -98,7 +98,6 @@ class History(object):
 
 class Border(object):
 	"""Represents a border for the cards, it can be in diferent colours"""
-
 	#predefined colours
 	black = "black"
 	white = "white"
@@ -135,19 +134,27 @@ class Card(object):
 
 	def set_border(self, border):
 		"""Set a new *border* for this card"""
+		if self.border is not None:
+			self.del_border()
 		self.border = border
 		self.img.border(self.border.colour, self.border.wide, self.border.wide)
 
-	def crop(self, *args, top, bottom, left, right, **kwargs):
+	def crop(self, *args, **kwargs):
 		"""Crop this card *top*, *bottom*, *left* and *right* pixels"""
-		self.img.crop(left = left, top = top, right = right, bottom = bottom)
+		w, h = self.img.size
+		if "right" in kwargs:
+			kwargs["right"] = w - kwargs["right"]
+		if "bottom" in kwargs:
+			kwargs["bottom"] = h - kwargs["bottom"]
+		self.img.crop(args, kwargs)
 		self.reset_coords()
 
 	def del_border(self):
 		"""Remove the border of this card"""
 		if border is not None:
 			w = self.border.wide
-			self.crop(top=w, bottom=w, right=w, left=w)
+			cw, ch = self.img.size
+			self.crop(top=w, bottom=ch-w, right=cw-w, left=w)
 			self.border = None
 
 	def save_as(self, filename):
@@ -163,7 +170,7 @@ class Deck(object):
 	def __init__(self):
 		self.cards = []
 		self.history = History(self.cards)
-		self.undo_stack = []
+		#self.undo_stack = []
 
 	def load_from_pdf(self, filename):
 		"""Loads all the cards from a pdf with pages compound of images"""
@@ -211,6 +218,20 @@ class Deck(object):
 	def get_card(self, index):
 		return self.cards[i]
 
+	def white_borders(self):
+		b = Border(Border.white, 10)
+		for c in self.cards:
+			c.set_border(b)
+
+	def black_borders(self):
+		b = Border(Border.black, 10)
+		for c in self.cards:
+			c.set_border(b)
+
+class Page(object):
+	"""Image with multiple cards, for printing in diferent card formats and sizes"""
+	pass
+
 ################## OLD #####################
 
 class MainWindow(QMainWindow, Central):
@@ -221,6 +242,7 @@ class MainWindow(QMainWindow, Central):
 		self.setupUi(self)
 		self.readSettings()
 		self.show()
+
 		self.deck = Deck()
 		self.setSignals()
 		self.say("Cargado")
@@ -237,14 +259,14 @@ class MainWindow(QMainWindow, Central):
 		self.negro_boton.clicked.connect(self.ponerBordeNegro)
 		self.blanco_boton.clicked.connect(self.ponerBordeBlanco)
 		self.quitar_boton.clicked.connect(self.recortarBorde)
-		self.auto_boton.clicked.connect(self.myTrim)
+		self.auto_boton.clicked.connect(self.handler_trim)
 
-	def myTrim(self):
-		umb = self.umbral_spin.value()
+	def handler_trim(self):
+		fuzz = self.umbral_spin.value()
 		if self.todas_radio.isChecked():
-			self.deck.trim(umb)
+			self.deck.trim(fuzz)
 		else:
-			self.deck.get_card(self.preview_slider.value()).trim(umb)
+			self.deck.get_card(self.preview_slider.value()).trim(fuzz)
 		self.updatePreview()
 		self.cv.saveHistory()
 
@@ -281,7 +303,6 @@ class MainWindow(QMainWindow, Central):
 				with im.clone() as clon:
 					clon.crop(top=i*cardHight+i*sep, width=cardWidth, left=j*cardWidth+j*sep, height=cardHight)
 					res.append(clon.clone())
-
 		return res
 
 	def divide(self):
@@ -391,6 +412,6 @@ class MainWindow(QMainWindow, Central):
 
 if __name__ == "__main__":
 	app = QApplication(argv)
-	ventana = MainWindow()
-	ventana.show()
+	window = MainWindow()
+	window.show()
 	app.exec_()
