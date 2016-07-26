@@ -21,7 +21,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 """
 
 from sys import argv
-from copy import deepcopy as deep_copy
 
 #Graphics
 from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap
@@ -33,119 +32,32 @@ from wand.image import Image
 from wand.color import Color
 from wand.display import display
 
-class State(object):
-	"""Each of the states saved in a history"""
-	def __init__(self, obj, msg=None):
-		"""*obj* is the object to freeze in this state, *msg* the status message"""
-		self.obj = deep_copy(obj)
-		self.msg = msg
-
-	def get_obj(self):
-		"""Returns a copy of the object and the message preserving the state intact"""
-		return deep_copy(obj)
-
-	def get_msg(self):
-		return msg
-
-class History(object):
-	"""Keeps a number of states for a given object"""
-	def __init__(self, obj):
-		"""*obj* to keep track"""
-		self.obj = obj
-		self.states = [State(obj, "Initial state")]
-		self.current_state = 1
-		self.length = 50
-
-	def track(self, msg="Default message"):
-		"""Add a new state to the states list, just after the current state"""
-		while self.current_state < len(self.states):
-			self.states.pop()
-		if len(self.states) == self.length:
-			self.states.pop(0)
-			self.current.state -= 1
-		self.states.append(State(self.obj), msg)
-		self.current_state += 1
-
-	def undo(self):
-		"""Undo one action"""
-		if self.current_state > 1:
-			self.current_state -= 1
-			self.reload_obj()
-
-	def redo(self):
-		"""Redo one action"""
-		if self.current_state < len(self.states):
-			self.current_state += 1
-			self.reload_obj()
-
-	def reload_obj(self):
-		"""Changes obj to the current state if method set is found"""
-		self.obj.set(self.get_current())
-
-	def msg_current(self):
-		return self.states[self.current_state - 1].get_msg()
-
-	def get_current(self):
-		return self.states[self.current_state - 1].get_obj()
-
-class Command(object):
-	"""To easily instance History-able objects"""
-	def __init__(self):
-		self.history = History(self)
-
-	@abstractmethod
-	def set(self, new):
-		"""Redefine this method in the new class to work with this object"""
-		pass
-
-	def register(self, msg):
-		self.history.track(msg)
-
-	def undo(self):
-		self.history.undo()
-
-	def redo(self):
-		self.history.redo()
+from history import Command, keep_state
 
 class Border(object):
-	"""Represents a border for the cards, it can be in diferent colours"""
-	#predefined colours
+	"""Represents a border for the cards"""
 	black = "black"
 	white = "white"
-
 	def __init__(self, colour, wide):
 		"""Init the border with a specific *colour* and *wide*"""
 		self.colour = colour
 		self.wide = wide
 
-### Decorators for changes and registering ###
-
 def set_changed(func):
-	def handler(self, *args **kwargs):
+	def handler(self, *args, **kwargs):
 		self.changed = True
 		return func(self, *args, **kwargs)
 	return handler
 
-def keep_state(msg):
-	"""Functions decorated with keep_state will add the state to History after commiting changes"""
-	def deco(func):
-		def wrapper(self, *args, **kwargs):
-			res = func(self, *args, **kwargs)
-			if "register" in kwargs:
-				if kwargs["register"]:
-					self.register(msg)
-				del kwargs["register"]
-			return res
-		return wrapper
-	return deco
-
 class Card(Command):
 	"""Individual object containing an image and actions to manipulate it"""
-	def __self__(self, img):
+	def __init__(self, img):
 		"""Init a new cards with *img* being a wand.image.Image object"""
 		self.img = img
 		self.border = None
 		self.changed = True
+		super(Card, self).__init__()
+		self.pixmap()
 
 	@set_changed
 	@keep_state("Image setted")
@@ -166,11 +78,11 @@ class Card(Command):
 		super(Card, self).redo()
 
 	@set_changed
-	def reset_coord(self):
+	def reset_coords(self):
 		self.img.reset_coords()
 
 	@keep_state("Image trimmed")
-	def trim(self, fuzz):
+	def trim(self, fuzz=13):
 		"""Trim the border with a threshold *fuzz*"""
 		self.img.trim(fuzz = fuzz)
 		self.reset_coords()
@@ -182,7 +94,7 @@ class Card(Command):
 		if self.border is not None:
 			self.del_border()
 		self.border = border
-		self.img.border(self.border.colour, self.border.wide, self.border.wide)
+		self.img.border(Color(self.border.colour), self.border.wide, self.border.wide)
 
 	@keep_state("Image cropped")
 	def crop(self, *args, **kwargs):
@@ -198,7 +110,7 @@ class Card(Command):
 	@keep_state("Border deleted")
 	def del_border(self):
 		"""Remove the border of this card"""
-		if border is not None:
+		if self.border is not None:
 			w = self.border.wide
 			self.crop(top=w, bottom=w, right=w, left=w)
 			self.border = None
@@ -217,9 +129,10 @@ class Card(Command):
 		res = []
 		for i in range(rows):
 			for j in range(cols):
-				with self.img.clone() as clon:
-					clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
-					res.append(clon.clone())
+				clon = self.img.clone()
+				#TODO is making some weird thing with the destruction of the clon and the creation of the Deck
+				clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
+				res.append(Card(clon.clone()))
 		return Deck(res)
 
 	@set_changed
@@ -259,23 +172,31 @@ class Deck(Command):
 	@keep_state("Loaded images")
 	def load(self, filename, cards_row=1, cards_col=1, sep=0):
 		"""Load the deck from *filename* having *cards_row* by *cards_col* cards"""
+		filename = str(filename)
 		if filename.endswith(".pdf"):
 			tmpdeck = Deck()
 			tmpdeck.load_from_pdf(filename, register=False)
-			self.cards.extend(tmpdeck.split(cards_row, cards_col, sep))
+			if cards_row * cards_col > 1:
+				tmpdeck = tmpdeck.split(cards_row, cards_col, sep)
+			self.extend(tmpdeck)
 		else:
 			tmpcard = Card(Image(filename = filename))
-			self.cards.extend(tmpcard.split(cards_row, cards_col, sep))
+			if cards_row * cards_col > 1:
+				tmpcard = tmpcard.split(cards_row, cards_col, sep)
+			else:
+				tmpcard = Deck([tmpcard])
+			self.extend(tmpcard)
 
 	@keep_state("Cards emptied")
 	def clear(self, track=True):
 		"""Empty the cards of this deck"""
-		self.cards.clear()
+		while len(self) > 0:
+			self.cards.pop()
 
 	@keep_state("Cards resetted")
 	def set(self, new):
 		"""Set the cards list to *new*"""
-		self.cards.clear()
+		self.clear()
 		self.cards.extend(new.cards)
 
 	def get(self, index):
@@ -298,22 +219,15 @@ class Deck(Command):
 	### Multi card methods ###
 
 	@keep_state("Cards trimmed")
-	def trim(fuzz=15):
+	def trim(self, fuzz=15):
 		"""Trim all the cards in the deck"""
 		for c in self.cards:
 			c.trim(fuzz, register=False)
 
-	@keep_state("White borders added")
-	def white_borders(self):
-		"""Set a white border fixed wide for all the cards"""
-		b = Border(Border.white, 20)
-		for c in self.cards:
-			c.set_border(b, register=False)
-
-	@keep_state("Black borders added")
-	def black_borders(self):
-		"""Set a black border fixed wide for all the cards"""
-		b = Border(Border.black, 20)
+	@keep_state("Borders added")
+	def borders(self, colour, wide):
+		"""Set a border for all the cards"""
+		b = Border(colour, wide)
 		for c in self.cards:
 			c.set_border(b, register=False)
 
@@ -335,7 +249,7 @@ class MainWindow(QMainWindow, Central):
 		QMainWindow.__init__(self)
 		Central.__init__(self)
 		self.setupUi(self)
-		self.readSettings()
+		#self.readSettings()
 		self.show()
 		self.deck = Deck()
 		self.init_signals()
@@ -344,17 +258,23 @@ class MainWindow(QMainWindow, Central):
 		self.undo_stack = []
 
 	def init_signals(self):
-		self.elegir_boton.clicked.connect(self.openfil)
-		self.guardar_como_boton.clicked.connect(self.saveimgs)
-		self.dividir_boton.clicked.connect(self.divide)
-		self.preview_slider.valueChanged.connect(self.preview)
-		self.deshacer_boton.clicked.connect(self.cv.undo)
-		self.rehacer_boton.clicked.connect(self.cv.redo)
+		self.elegir_boton.clicked.connect(self.handler_open_files)
+		#self.guardar_como_boton.clicked.connect(self.saveimgs)
+		self.dividir_boton.clicked.connect(self.handler_split)
+		self.preview_slider.valueChanged.connect(self.__preview__)
+		self.deshacer_boton.clicked.connect(self.undo)
+		self.rehacer_boton.clicked.connect(self.redo)
 		self.borrar_boton.clicked.connect(self.handler_delete_card)
 		self.negro_boton.clicked.connect(self.handler_black_borders)
 		self.blanco_boton.clicked.connect(self.handler_white_borders)
 		self.quitar_boton.clicked.connect(self.handler_delete_borders)
 		self.auto_boton.clicked.connect(self.handler_trim)
+
+	def undo(self):
+		pass
+
+	def redo(self):
+		pass
 
 	def all_selected(self):
 		return self.todas_radio.isChecked()
@@ -392,14 +312,15 @@ class MainWindow(QMainWindow, Central):
 		self.say("Completed")
 		self.preview(0)
 
-	def openfil(self):
+	def handler_open_files(self):
 		files = QFileDialog.getOpenFileNames(self, "Elige uno o mas ficheros", "./", "Images (*.png *.jpg);; PDF (*.pdf)")
 		if len(files) < 1:
 			return
 		names = '"' + str(files[0])[str(files[0]).rfind("/")+1:] +'"'
 		for el in files[1:]: names += ', "' + str(el)[str(el).rfind("/")+1:] + '"'
 		self.fichero_edit.setText(names)
-		self.cv.imgImport(files)
+		for file in files:
+			self.deck.load(file)
 		self.preview(0)
 		self.say("Hecho")
 
@@ -416,17 +337,15 @@ class MainWindow(QMainWindow, Central):
 		else:
 			self.preview(-1)
 
-#	def ponerBordeNegro(self):
-#		tam = self.border_spin.value()
-#		for im in self.cv.png:
-#			im.border(Color("black"), tam, tam)
-#		self.preview()
+	def handler_black_borders(self):
+		wide = self.border_spin.value()
+		self.deck.borders(Border.black, wide)
+		self.preview()
 
-#	def ponerBordeBlanco(self):
-#		tam = self.border_spin.value()
-#		for im in self.cv.png:
-#			im.border(Color("white"), tam, tam)
-#		self.preview()
+	def handler_white_borders(self):
+		wide = self.border_spin.value()
+		self.deck.borders(Border.white, wide)
+		self.preview()
 
 	def say(self, text):
 		self.msg_label.setText(text)
@@ -460,17 +379,17 @@ class MainWindow(QMainWindow, Central):
 		except:
 			self.preview_label.setText("Image not available")
 
-	@pyqtSlot()
-	def closeEvent(self, e):
-		settings = QSettings("LuisjaCorp", "PnPCards")
-		settings.setValue("geometry", self.saveGeometry())
-		settings.setValue("windowState", self.saveState())
-		QMainWindow.closeEvent(self, e)
+#	@pyqtSlot()
+#	def closeEvent(self, e):
+#		settings = QSettings("LuisjaCorp", "PnPCards")
+#		settings.setValue("geometry", self.saveGeometry())
+#		settings.setValue("windowState", self.saveState())
+#		QMainWindow.closeEvent(self, e)
 
-	def readSettings(self):
-		settings = QSettings("LuisjaCorp", "PnPCards")
-		self.restoreGeometry(settings.value("geometry").toByteArray())
-		self.restoreState(settings.value("windowState").toByteArray())
+#	def readSettings(self):
+#		settings = QSettings("LuisjaCorp", "PnPCards")
+#		self.restoreGeometry(settings.value("geometry").toByteArray())
+#		self.restoreState(settings.value("windowState").toByteArray())
 
 
 if __name__ == "__main__":
