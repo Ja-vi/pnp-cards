@@ -150,7 +150,7 @@ class Card(Command):
 
 class Deck(Command):
 	"""Container for the cards and groupal actions"""
-	def __init__(self, cards = []):
+	def __init__(self, cards):
 		self.cards = cards
 		super(Deck, self).__init__()
 
@@ -164,7 +164,7 @@ class Deck(Command):
 				self.cards.append(Card(Image(page)))
 
 	def split(self, nrows, ncols, sep):
-		newcards = Deck()
+		newcards = Deck([])
 		for c in self.cards:
 			newcards.extend(c.split(nrows, ncols, sep), register=False)
 		return newcards
@@ -174,7 +174,7 @@ class Deck(Command):
 		"""Load the deck from *filename* having *cards_row* by *cards_col* cards"""
 		filename = str(filename)
 		if filename.endswith(".pdf"):
-			tmpdeck = Deck()
+			tmpdeck = Deck([])
 			tmpdeck.load_from_pdf(filename, register=False)
 			if cards_row * cards_col > 1:
 				tmpdeck = tmpdeck.split(cards_row, cards_col, sep)
@@ -251,7 +251,7 @@ class MainWindow(QMainWindow, Central):
 		self.setupUi(self)
 		#self.readSettings()
 		self.show()
-		self.deck = Deck()
+		self.deck = Deck([])
 		self.init_signals()
 		self.say("Cargado")
 		self.percent(100)
