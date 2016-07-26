@@ -47,10 +47,11 @@ def set_changed(func):
 	return handler
 
 class Card(object):
-	"""Individual object containing an image and actions to manipulate it"""
-	def __init__(self, img):
+	"""Individual object containing an image and actions to manipulate it.
+	Posible kwargs to __init__ are filename, file, image, blob. it will load the image from there"""
+	def __init__(self, *args, **kwargs):
 		"""Init a new cards with *img* being a wand.image.Image object"""
-		self.img = img
+		self.img = Image(*args, **kwargs)
 		self.border = None
 		self.changed = True
 		self.pixmap()
@@ -106,7 +107,6 @@ class Card(object):
 		for i in range(rows):
 			for j in range(cols):
 				clon = self.img.clone()
-				#TODO is making some weird thing with the destruction of the clon and the creation of the Deck
 				clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
 				clon.reset_coords()
 				res.append(Card(clon))
@@ -129,44 +129,42 @@ class Deck(object):
 	def __init__(self, cards):
 		self.cards = cards
 
+	### Iterator methods ###
+
+	def __getitem__(self, index):
+		"""Indexed access to cards"""
+		return self.cards[index]
+
+	def __len__(self):
+		"""Number of cards in the deck"""
+		return len(self.cards)
+
 	### Deck methods ###
 
 	def load_from_pdf(self, filename):
 		"""Loads all the cards from a pdf with pages compound of images"""
-		with Image(filename=filename, resolution=300) as pdf:
+		with Image(filename=filename, resolution=100) as pdf:
 			for page in pdf.sequence:
-				self.cards.append(Card(Image(page)))
+				with Image(page).convert('png') as new:
+					self.append(Card(image=new))
 
 	def load(self, filename, cards_row=1, cards_col=1, sep=0):
 		"""Load the deck from *filename* having *cards_row* by *cards_col* cards"""
 		filename = str(filename)
+		tmp = Deck([])
 		if filename.endswith(".pdf"):
-			tmpdeck = Deck([])
-			tmpdeck.load_from_pdf(filename)
-			if cards_row * cards_col > 1:
-				tmpdeck = tmpdeck.split(cards_row, cards_col, sep)
-			self.extend(tmpdeck)
+			tmp.load_from_pdf(filename)
 		else:
-			tmpcard = Card(Image(filename = filename))
-			if cards_row * cards_col > 1:
-				tmpcard = tmpcard.split(cards_row, cards_col, sep)
-			else:
-				tmpcard = Deck([tmpcard])
-			self.extend(tmpcard)
+			tmp.append(Card(filename=filename))
+
+		if cards_row * cards_col > 1:
+			tmp = tmp.split(cards_row, cards_col, sep)
+		self.extend(tmp)
 
 	def clear(self, track=True):
 		"""Empty the cards of this deck"""
 		while len(self) > 0:
 			self.cards.pop()
-
-	def set(self, new):
-		"""Set the cards list to *new*"""
-		self.clear()
-		self.cards.extend(new.cards)
-
-	def get(self, index):
-		"""Returns card *index*"""
-		return self.cards[index]
 
 	def del_card(self, index):
 		"""Delete card *index* and return it"""
@@ -174,18 +172,14 @@ class Deck(object):
 
 	def extend(self, other):
 		"""Extend from another dictionary or list of cards"""
-		if isinstance(list, other):
+		if isinstance(other, list):
 			self.cards.extend(other)
-		elif isinstance(Deck, other):
+		elif isinstance(other, Deck):
 			self.cards.extend(other.cards)
 
 	def append(self, card):
 		"""Add a new card to the deck"""
 		self.cards.append(card)
-
-	def __len__(self):
-		"""Number of cards in the deck"""
-		return len(self.cards)
 
 	### Multi card methods ###
 
@@ -193,7 +187,8 @@ class Deck(object):
 		newcards = Deck([])
 		for c in self.cards:
 			newcards.extend(c.split(nrows, ncols, sep))
-		return newcards
+		self.clear()
+		self.extend(newcards)
 
 	def borders(self, colour, wide):
 		"""Set a border for all the cards"""
@@ -206,8 +201,8 @@ class Deck(object):
 		for c in self.cards:
 			c.del_border()
 
-class Page(object):
-	"""Image with multiple cards, for printing in diferent card formats and sizes"""
+class Printer(object):
+	"""For printing in diferent card formats and sizes the associated deck"""
 	pass
 
 ################## OLD #####################
@@ -244,7 +239,7 @@ class MainWindow(QMainWindow, Central):
 			self.deck.del_borders()
 			self.complete_percent()
 		else:
-			self.deck.get(self.preview_slider.value()).del_border()
+			self.deck[self.preview_slider.value()].del_border()
 		self.preview()
 
 	def handler_split(self):
@@ -253,13 +248,13 @@ class MainWindow(QMainWindow, Central):
 		sep = self.sep_spin.value()
 		if self.all_selected():
 			self.reset_percent()
-			self.deck.set(self.deck.split(n, m, sep))
+			self.deck.split(n, m, sep)
 			self.complete_percent()
 		else:
 			card = self.deck.del_card(self.preview_slider.value())
 			self.deck.extend(card.split(n, m, sep))
-		self.say("Completed")
 		self.preview(0)
+		self.say("Completed")
 
 	def handler_open_files(self):
 		files = QFileDialog.getOpenFileNames(self, "Elige uno o mas ficheros", "./", "Images (*.png *.jpg);; PDF (*.pdf)")
@@ -279,7 +274,8 @@ class MainWindow(QMainWindow, Central):
 		self.cv.writePngFiles()
 
 	def handler_delete_card(self):
-		self.deck.del_card(self.preview_slider.value())
+		num = self.preview_slider.value()
+		self.deck.del_card(num)
 		self.say("Imagen eliminada")
 		if num < len(self.deck):
 			self.preview(num)
@@ -324,7 +320,7 @@ class MainWindow(QMainWindow, Central):
 	def __preview__(self, num):
 		self.preview_label.clear()
 		try:
-			self.preview_label.setPixmap(self.deck.get(num).pixmap())
+			self.preview_label.setPixmap(self.deck[num].pixmap())
 		except:
 			self.preview_label.setText("Image not available")
 
