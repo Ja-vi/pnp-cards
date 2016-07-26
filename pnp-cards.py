@@ -208,9 +208,19 @@ class Card(Command):
 		"""Save this card in a file named *filename*"""
 		self.img.save(filename = filename)
 
-	def split(self, rows, cols):
-		"""Divide this cards in *rows* by *cols* cards"""
-		pass
+	def split(self, rows, cols, separation=0):
+		"""Divide this cards in *rows* by *cols* cards, and returns a deck containing them"""
+		width, hight = self.img.size
+		width, hight = (int(width), int(hight))
+		cardWidth = (width - separation * (cols-1)) / cols
+		cardHight = (hight - separation * (rows-1)) / rows
+		res = []
+		for i in range(rows):
+			for j in range(cols):
+				with self.img.clone() as clon:
+					clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
+					res.append(clon.clone())
+		return Deck(res)
 
 	@set_changed
 	@keep_state("Corners rounded")
@@ -227,8 +237,9 @@ class Card(Command):
 
 class Deck(Command):
 	"""Container for the cards and groupal actions"""
-	def __init__(self):
-		self.cards = []
+	def __init__(self, cards = []):
+		self.cards = cards
+		super(Deck, self).__init__()
 
 	### Deck methods ###
 
@@ -239,22 +250,22 @@ class Deck(Command):
 			for page in pdf.sequence:
 				self.cards.append(Card(Image(page)))
 
-	def split(self, nrows, ncols):
-		newcards = []
+	def split(self, nrows, ncols, sep):
+		newcards = Deck()
 		for c in self.cards:
-			newcards.extend(c.split(nrows, ncols))
+			newcards.extend(c.split(nrows, ncols, sep), register=False)
 		return newcards
 
 	@keep_state("Loaded images")
-	def load(self, filename, cards_row=1, cards_col=1):
+	def load(self, filename, cards_row=1, cards_col=1, sep=0):
 		"""Load the deck from *filename* having *cards_row* by *cards_col* cards"""
 		if filename.endswith(".pdf"):
 			tmpdeck = Deck()
 			tmpdeck.load_from_pdf(filename, register=False)
-			self.cards.extend(tmpdeck.split(cards_row, cards_col))
+			self.cards.extend(tmpdeck.split(cards_row, cards_col, sep))
 		else:
 			tmpcard = Card(Image(filename = filename))
-			self.cards.extend(tmpcard.split(cards_row, cards_col))
+			self.cards.extend(tmpcard.split(cards_row, cards_col, sep))
 
 	@keep_state("Cards emptied")
 	def clear(self, track=True):
@@ -273,8 +284,12 @@ class Deck(Command):
 
 	@keep_state("Card deleted")
 	def del_card(self, index):
-		"""Delete card *index*"""
-		self.cards.pop(index)
+		"""Delete card *index* and return it"""
+		return self.cards.pop(index)
+
+	@keep_state("Cards concatenated")
+	def extend(self, other):
+		self.cards.extend(other.cards)
 
 	def __len__(self):
 		"""Number of cards in the deck"""
@@ -363,32 +378,18 @@ class MainWindow(QMainWindow, Central):
 			self.deck.get(self.preview_slider.value()).del_border(register=True)
 		self.preview()
 
-	def handler_split(self, im, n, m):
-		width, hight = im.size
-		sep = self.sep_spin.value()
-		width, hight = (int(width), int(hight))
-		cardWidth = (width - sep * (m-1)) / m
-		cardHight = (hight - sep * (n-1)) / n
-		res = []
-		for i in range(n):
-			for j in range(m):
-				with im.clone() as clon:
-					clon.crop(top=i*cardHight+i*sep, width=cardWidth, left=j*cardWidth+j*sep, height=cardHight)
-					res.append(clon.clone())
-		return res
-
-	def divide(self):
+	def handler_split(self):
 		n = self.n_spin_2.value()
 		m = self.m_spin_2.value()
-		images = self.cv.getPngList()
-		end_images = []
-		self.reset_percent()
-		for el in images:
-			end_images.extend(self.split(el, n, m))
-			self.nextPercent(images)
-		self.complete_percent()
-		self.say("Divididas")
-		self.cv.setPngList(end_images)
+		sep = self.sep_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.set(self.deck.split(n, m, sep))
+			self.complete_percent()
+		else:
+			card = self.deck.del_card(self.preview_slider.value(), register=False)
+			self.deck.extend(card.split(n, m, sep), register=True)
+		self.say("Completed")
 		self.preview(0)
 
 	def openfil(self):
