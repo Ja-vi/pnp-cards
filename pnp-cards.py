@@ -30,9 +30,6 @@ from window import Ui_Form as Central
 #Image manipulation
 from wand.image import Image
 from wand.color import Color
-from wand.display import display
-
-from history import Command, keep_state
 
 class Border(object):
 	"""Represents a border for the cards"""
@@ -49,18 +46,16 @@ def set_changed(func):
 		return func(self, *args, **kwargs)
 	return handler
 
-class Card(Command):
+class Card(object):
 	"""Individual object containing an image and actions to manipulate it"""
 	def __init__(self, img):
 		"""Init a new cards with *img* being a wand.image.Image object"""
 		self.img = img
 		self.border = None
 		self.changed = True
-		super(Card, self).__init__()
 		self.pixmap()
 
 	@set_changed
-	@keep_state("Image setted")
 	def set(self, new):
 		"""Sets this card to *new* card"""
 		self.img.clear()
@@ -68,27 +63,10 @@ class Card(Command):
 		self.border = new.border
 
 	@set_changed
-	def restore_state(self, saved):
-		self.img.clear()
-		self.img.read(blob = saved[0])
-		self.border = saved[1]
-		self.pixmap()
-
-	def save_state(self):
-		return [self.img.make_blob(), self.border]
-
-	@set_changed
 	def reset_coords(self):
 		self.img.reset_coords()
 
-	@keep_state("Image trimmed")
-	def trim(self, fuzz=13):
-		"""Trim the border with a threshold *fuzz*"""
-		self.img.trim(fuzz = fuzz)
-		self.reset_coords()
-
 	@set_changed
-	@keep_state("Border setted")
 	def set_border(self, border):
 		"""Set a new *border* for this card"""
 		if self.border is not None:
@@ -96,7 +74,6 @@ class Card(Command):
 		self.border = border
 		self.img.border(Color(self.border.colour), self.border.wide, self.border.wide)
 
-	@keep_state("Image cropped")
 	def crop(self, *args, **kwargs):
 		"""Crop this card *top*, *bottom*, *left* and *right* pixels"""
 		w, h = self.img.size
@@ -107,7 +84,6 @@ class Card(Command):
 		self.img.crop(*args, **kwargs)
 		self.reset_coords()
 
-	@keep_state("Border deleted")
 	def del_border(self):
 		"""Remove the border of this card"""
 		if self.border is not None:
@@ -137,7 +113,6 @@ class Card(Command):
 		return Deck(res)
 
 	@set_changed
-	@keep_state("Corners rounded")
 	def round_corners(self):
 		"""Round the corners of the card (setting them to alpha)"""
 		pass
@@ -149,34 +124,25 @@ class Card(Command):
 			self.changed = False
 		return self._pixmap
 
-class Deck(Command):
+class Deck(object):
 	"""Container for the cards and groupal actions"""
 	def __init__(self, cards):
 		self.cards = cards
-		super(Deck, self).__init__()
 
 	### Deck methods ###
 
-	@keep_state("PDF loaded")
 	def load_from_pdf(self, filename):
 		"""Loads all the cards from a pdf with pages compound of images"""
 		with Image(filename=filename, resolution=300) as pdf:
 			for page in pdf.sequence:
 				self.cards.append(Card(Image(page)))
 
-	def split(self, nrows, ncols, sep):
-		newcards = Deck([])
-		for c in self.cards:
-			newcards.extend(c.split(nrows, ncols, sep), register=False)
-		return newcards
-
-	@keep_state("Loaded images")
 	def load(self, filename, cards_row=1, cards_col=1, sep=0):
 		"""Load the deck from *filename* having *cards_row* by *cards_col* cards"""
 		filename = str(filename)
 		if filename.endswith(".pdf"):
 			tmpdeck = Deck([])
-			tmpdeck.load_from_pdf(filename, register=False)
+			tmpdeck.load_from_pdf(filename)
 			if cards_row * cards_col > 1:
 				tmpdeck = tmpdeck.split(cards_row, cards_col, sep)
 			self.extend(tmpdeck)
@@ -188,13 +154,11 @@ class Deck(Command):
 				tmpcard = Deck([tmpcard])
 			self.extend(tmpcard)
 
-	@keep_state("Cards emptied")
 	def clear(self, track=True):
 		"""Empty the cards of this deck"""
 		while len(self) > 0:
 			self.cards.pop()
 
-	@keep_state("Cards resetted")
 	def set(self, new):
 		"""Set the cards list to *new*"""
 		self.clear()
@@ -204,14 +168,20 @@ class Deck(Command):
 		"""Returns card *index*"""
 		return self.cards[index]
 
-	@keep_state("Card deleted")
 	def del_card(self, index):
 		"""Delete card *index* and return it"""
 		return self.cards.pop(index)
 
-	@keep_state("Cards concatenated")
 	def extend(self, other):
-		self.cards.extend(other.cards)
+		"""Extend from another dictionary or list of cards"""
+		if isinstance(list, other):
+			self.cards.extend(other)
+		elif isinstance(Deck, other):
+			self.cards.extend(other.cards)
+
+	def append(self, card):
+		"""Add a new card to the deck"""
+		self.cards.append(card)
 
 	def __len__(self):
 		"""Number of cards in the deck"""
@@ -219,24 +189,22 @@ class Deck(Command):
 
 	### Multi card methods ###
 
-	@keep_state("Cards trimmed")
-	def trim(self, fuzz=15):
-		"""Trim all the cards in the deck"""
+	def split(self, nrows, ncols, sep):
+		newcards = Deck([])
 		for c in self.cards:
-			c.trim(fuzz, register=False)
+			newcards.extend(c.split(nrows, ncols, sep))
+		return newcards
 
-	@keep_state("Borders added")
 	def borders(self, colour, wide):
 		"""Set a border for all the cards"""
 		b = Border(colour, wide)
 		for c in self.cards:
-			c.set_border(b, register=False)
+			c.set_border(b)
 
-	@keep_state("Borders removed")
 	def del_borders(self):
 		"""Remove all the borders of the cards having it"""
 		for c in self.cards:
-			c.del_border(register=False)
+			c.del_border()
 
 class Page(object):
 	"""Image with multiple cards, for printing in diferent card formats and sizes"""
@@ -256,47 +224,27 @@ class MainWindow(QMainWindow, Central):
 		self.init_signals()
 		self.say("Cargado")
 		self.percent(100)
-		self.undo_stack = []
 
 	def init_signals(self):
 		self.elegir_boton.clicked.connect(self.handler_open_files)
 		#self.guardar_como_boton.clicked.connect(self.saveimgs)
 		self.dividir_boton.clicked.connect(self.handler_split)
 		self.preview_slider.valueChanged.connect(self.__preview__)
-		self.deshacer_boton.clicked.connect(self.undo)
-		self.rehacer_boton.clicked.connect(self.redo)
 		self.borrar_boton.clicked.connect(self.handler_delete_card)
 		self.negro_boton.clicked.connect(self.handler_black_borders)
 		self.blanco_boton.clicked.connect(self.handler_white_borders)
 		self.quitar_boton.clicked.connect(self.handler_delete_borders)
-		self.auto_boton.clicked.connect(self.handler_trim)
-
-	def undo(self):
-		pass
-
-	def redo(self):
-		pass
 
 	def all_selected(self):
 		return self.todas_radio.isChecked()
 
-	def handler_trim(self):
-		fuzz = self.umbral_spin.value()
-		if self.all_selected():
-			self.reset_percent()
-			self.deck.trim(fuzz, register=True)
-			self.complete_percent()
-		else:
-			self.deck.get(self.preview_slider.value()).trim(fuzz, register=True)
-		self.preview()
-
 	def handler_delete_borders(self):
 		if self.all_selected():
 			self.reset_percent()
-			self.deck.del_borders(register=True)
+			self.deck.del_borders()
 			self.complete_percent()
 		else:
-			self.deck.get(self.preview_slider.value()).del_border(register=True)
+			self.deck.get(self.preview_slider.value()).del_border()
 		self.preview()
 
 	def handler_split(self):
@@ -308,8 +256,8 @@ class MainWindow(QMainWindow, Central):
 			self.deck.set(self.deck.split(n, m, sep))
 			self.complete_percent()
 		else:
-			card = self.deck.del_card(self.preview_slider.value(), register=False)
-			self.deck.extend(card.split(n, m, sep), register=True)
+			card = self.deck.del_card(self.preview_slider.value())
+			self.deck.extend(card.split(n, m, sep))
 		self.say("Completed")
 		self.preview(0)
 
@@ -331,7 +279,7 @@ class MainWindow(QMainWindow, Central):
 		self.cv.writePngFiles()
 
 	def handler_delete_card(self):
-		self.deck.del_card(self.preview_slider.value(), register=True)
+		self.deck.del_card(self.preview_slider.value())
 		self.say("Imagen eliminada")
 		if num < len(self.deck):
 			self.preview(num)
