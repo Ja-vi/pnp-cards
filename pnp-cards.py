@@ -57,13 +57,6 @@ class Card(object):
 		self.pixmap()
 
 	@set_changed
-	def set(self, new):
-		"""Sets this card to *new* card"""
-		self.img.clear()
-		self.img.read(blob = new.img.make_blob())
-		self.border = new.border
-
-	@set_changed
 	def reset_coords(self):
 		self.img.reset_coords()
 
@@ -181,6 +174,29 @@ class Deck(object):
 		"""Add a new card to the deck"""
 		self.cards.append(card)
 
+	def join(self, fils, cols, sep):
+		"""Set the cards to be the junction of the previous cards"""
+		newdeck = Deck([])
+		numcards = len(self) / (fils * cols)
+		rest = len(self) % (fils * cols)
+		format = self[0].img.format
+		with self[0].img.clone() as clon:
+			clon.clear()
+			while (rest):
+				self.append(self[0])
+				rest -= 1
+		numcards = len(self) / (fils * cols)
+		w = self[0].img.width
+		h = self[0].img.height
+		for c in range(numcards):
+			joint = Image(width = w * cols + sep * (cols-1), height = h * fils + sep * (fils-1))
+			for i in range(fils):
+				for j in range(cols):
+					joint.composite(self[i*cols+j].img, top=h*i, left=w*j)
+			newdeck.append(Card(blob=joint.make_blob(format)))
+		self.clear()
+		self.extend(newdeck)
+
 	### Multi card methods ###
 
 	def split(self, nrows, ncols, sep):
@@ -224,6 +240,7 @@ class MainWindow(QMainWindow, Central):
 		self.elegir_boton.clicked.connect(self.handler_open_files)
 		#self.guardar_como_boton.clicked.connect(self.saveimgs)
 		self.dividir_boton.clicked.connect(self.handler_split)
+		self.unir_boton.clicked.connect(self.handler_join)
 		self.preview_slider.valueChanged.connect(self.__preview__)
 		self.borrar_boton.clicked.connect(self.handler_delete_card)
 		self.negro_boton.clicked.connect(self.handler_black_borders)
@@ -253,6 +270,16 @@ class MainWindow(QMainWindow, Central):
 		else:
 			card = self.deck.del_card(self.preview_slider.value())
 			self.deck.extend(card.split(n, m, sep))
+		self.preview(0)
+		self.say("Completed")
+
+	def handler_join(self):
+		n = self.n_spin_2.value()
+		m = self.m_spin_2.value()
+		sep = self.sep_spin.value()
+		self.reset_percent()
+		self.deck.join(n, m, sep)
+		self.complete_percent()
 		self.preview(0)
 		self.say("Completed")
 
