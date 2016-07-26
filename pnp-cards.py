@@ -68,14 +68,14 @@ class Card(Command):
 		self.border = new.border
 
 	@set_changed
-	def undo(self):
-		"""Undo last modifications to this card"""
-		super(Card, self).undo()
+	def restore_state(self, saved):
+		self.img.clear()
+		self.img.read(blob = saved[0])
+		self.border = saved[1]
+		self.pixmap()
 
-	@set_changed
-	def redo(self):
-		"""Redo last undo to this card"""
-		super(Card, self).redo()
+	def save_state(self):
+		return [self.img.make_blob(), self.border]
 
 	@set_changed
 	def reset_coords(self):
@@ -132,7 +132,8 @@ class Card(Command):
 				clon = self.img.clone()
 				#TODO is making some weird thing with the destruction of the clon and the creation of the Deck
 				clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
-				res.append(Card(clon.clone()))
+				clon.reset_coords()
+				res.append(Card(clon))
 		return Deck(res)
 
 	@set_changed

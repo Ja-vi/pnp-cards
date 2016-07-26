@@ -52,7 +52,7 @@ class History(object):
 		if len(self.states) == self.length:
 			self.states.pop(0)
 			self.current.state -= 1
-		self.states.append(State(self.obj, msg))
+		self.states.append(State(self.obj.save_state(), msg))
 		self.current_state += 1
 
 	def undo(self):
@@ -69,7 +69,7 @@ class History(object):
 
 	def reload_obj(self):
 		"""Changes obj to the current state if method set is found"""
-		self.obj.set(self.get_current())
+		self.obj.restore_state(self.get_current())
 
 	def msg_current(self):
 		return self.states[self.current_state - 1].get_msg()
@@ -82,8 +82,12 @@ class Command(object):
 	def __init__(self):
 		self.history = History(self)
 
-	def set(self, new):
+	def restore_state(self, saved):
 		"""Redefine this method in the new class to work with this object"""
+		raise NotImplementedError()
+
+	def save_state(self):
+		"""Redefine to save the state of this object that you will restore any other time, returns the elements to save"""
 		raise NotImplementedError()
 
 	def register(self, msg):
