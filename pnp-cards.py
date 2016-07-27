@@ -184,49 +184,64 @@ class Deck(object):
 
 	def join(self, fils, cols, sep):
 		"""Set the cards to be the junction of the previous cards"""
-		newdeck = Deck([])
-		numcards = len(self) / (fils * cols)
+
 		rest = len(self) % (fils * cols)
-		format = self[0].img.format
 		while (rest):
 			self.append(self[0])
 			rest -= 1
+
 		numcards = len(self) / (fils * cols)
+		format = self[0].img.format
 		w = self[0].img.width
 		h = self[0].img.height
+		newdeck = Deck([])
+
 		for c in range(numcards):
 			with Image(width = w * cols + sep * (cols-1), height = h * fils + sep * (fils-1)) as joint:
 				for i in range(fils):
 					for j in range(cols):
-						joint.composite(self[i*cols+j].img, top=(h+sep)*i, left=(w+sep)*j)
+						joint.composite(self[c*fils*cols + i*cols + j].img, top=(h+sep)*i, left=(w+sep)*j)
 				newdeck.append(Card(blob=joint.make_blob(format)))
+
 		self.clear()
 		self.extend(newdeck)
 
 	### Multi card methods ###
 
-	def split(self, nrows, ncols, sep):
+	def split(self, nrows, ncols, sep, **kwargs):
 		newcards = Deck([])
 		for c in self.cards:
 			newcards.extend(c.split(nrows, ncols, sep))
+			if "call" in kwargs:
+				if callable(kwargs["call"]):
+					kwargs["call"]()
 		self.clear()
 		self.extend(newcards)
 
-	def borders(self, colour, wide):
+	def borders(self, colour, wide, **kwargs):
 		"""Set a border for all the cards"""
 		b = Border(colour, wide)
 		for c in self.cards:
 			c.set_border(b)
+			if "call" in kwargs:
+				if callable(kwargs["call"]):
+					kwargs["call"]()
 
-	def del_borders(self):
+	def del_borders(self, **kwargs):
 		"""Remove all the borders of the cards having it"""
 		for c in self.cards:
 			c.del_border()
+			if "call" in kwargs:
+				if callable(kwargs["call"]):
+					kwargs["call"]()
 
-	def trim(self, fuzz=13):
+	def trim(self, fuzz=13, **kwargs):
 		"""Trim all the cards with a *fuzz* factor of similitude between colours"""
-		for c in self.cards
+		for c in self.cards:
 			c.trim(fuzz)
+			if "call" in kwargs:
+				if callable(kwargs["call"]):
+					kwargs["call"]()
 
 class Printer(object):
 	"""For printing in diferent card formats and sizes the associated deck"""
@@ -273,7 +288,7 @@ class MainWindow(QMainWindow, Central):
 	def handler_delete_borders(self):
 		if self.all_selected():
 			self.reset_percent()
-			self.deck.del_borders()
+			self.deck.del_borders(call=self.next_percent)
 			self.complete_percent()
 		else:
 			self.deck[self.preview_slider.value()].del_border()
@@ -283,7 +298,7 @@ class MainWindow(QMainWindow, Central):
 		fuzz = self.umbral_spin_2.value()
 		if self.all_selected():
 			self.reset_percent()
-			self.deck.trim(fuzz)
+			self.deck.trim(fuzz, call=self.next_percent)
 			self.complete_percent()
 		else:
 			self.deck[self.preview_slider.value()].trim(fuzz)
@@ -295,7 +310,7 @@ class MainWindow(QMainWindow, Central):
 		sep = self.sep_spin.value()
 		if self.all_selected():
 			self.reset_percent()
-			self.deck.split(n, m, sep)
+			self.deck.split(n, m, sep, call=self.next_percent)
 			self.complete_percent()
 		else:
 			card = self.deck.del_card(self.preview_slider.value())
@@ -314,14 +329,22 @@ class MainWindow(QMainWindow, Central):
 		self.say("Completed")
 
 	def handler_open_files(self):
-		files = QFileDialog.getOpenFileNames(self, "Elige uno o mas ficheros", "./", "Images (*.png *.jpg);; PDF (*.pdf)")
+
+		def getFiles():
+			files = QFileDialog.getOpenFileNames(self, "Elige uno o mas ficheros", "./", "Images (*.png *.jpg);; PDF (*.pdf)")
+			return files
+
+		files = getFiles()
 		if len(files) < 1:
 			return
 		names = '"' + str(files[0])[str(files[0]).rfind("/")+1:] +'"'
 		for el in files[1:]: names += ', "' + str(el)[str(el).rfind("/")+1:] + '"'
 		self.fichero_edit.setText(names)
+		self.reset_percent()
 		for file in files:
 			self.deck.load(file)
+			self.next_percent(files)
+		self.complete_percent()
 		self.preview(0)
 		self.say("Hecho")
 
@@ -386,8 +409,9 @@ class MainWindow(QMainWindow, Central):
 	def reset_percent(self):
 		self.percent(0)
 
-	def next_percent(self):
-		self.percent(self.progress_bar.value()+100/len(self.deck))
+	def next_percent(self,l=None):
+		lon = self.deck if l is None else l
+		self.percent(self.progress_bar.value()+100/len(lon))
 
 	def complete_percent(self):
 		self.percent(100)

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'central.ui'
 #
-# Created: Wed Jul 27 11:17:46 2016
+# Created: Wed Jul 27 12:31:31 2016
 #      by: PyQt4 UI code generator 4.9.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -168,6 +168,10 @@ class Ui_Form(object):
         self.pushButton_4 = QtGui.QPushButton(self.groupBox_10)
         self.pushButton_4.setGeometry(QtCore.QRect(160, 60, 61, 31))
         self.pushButton_4.setObjectName(_fromUtf8("pushButton_4"))
+        self.quitar_boton_2 = QtGui.QPushButton(self.groupBox_10)
+        self.quitar_boton_2.setGeometry(QtCore.QRect(10, 70, 81, 21))
+        self.quitar_boton_2.setFlat(False)
+        self.quitar_boton_2.setObjectName(_fromUtf8("quitar_boton_2"))
         self.line_9 = QtGui.QFrame(Form)
         self.line_9.setGeometry(QtCore.QRect(360, 190, 20, 71))
         self.line_9.setFrameShape(QtGui.QFrame.VLine)
@@ -301,14 +305,15 @@ class Ui_Form(object):
         self.unir_boton.setText(QtGui.QApplication.translate("Form", "Merge", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("Form", "Interspace:", None, QtGui.QApplication.UnicodeUTF8))
         self.sep_spin.setSuffix(QtGui.QApplication.translate("Form", " px", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox_8.setTitle(QtGui.QApplication.translate("Form", "Preview", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_8.setTitle(QtGui.QApplication.translate("Form", "Preview (without real proportions)", None, QtGui.QApplication.UnicodeUTF8))
         self.borrar_boton.setText(QtGui.QApplication.translate("Form", "X", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox_10.setTitle(QtGui.QApplication.translate("Form", "Crop borders (All, to keep same size)", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_10.setTitle(QtGui.QApplication.translate("Form", "Crop borders", None, QtGui.QApplication.UnicodeUTF8))
         self.crop_spin.setSuffix(QtGui.QApplication.translate("Form", " px", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("Form", "Left", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_2.setText(QtGui.QApplication.translate("Form", "Top", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_3.setText(QtGui.QApplication.translate("Form", "Right", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton_4.setText(QtGui.QApplication.translate("Form", "Bottom", None, QtGui.QApplication.UnicodeUTF8))
+        self.quitar_boton_2.setText(QtGui.QApplication.translate("Form", "All", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_5.setTitle(QtGui.QApplication.translate("Form", "Card border", None, QtGui.QApplication.UnicodeUTF8))
         self.border_spin.setSuffix(QtGui.QApplication.translate("Form", " px", None, QtGui.QApplication.UnicodeUTF8))
         self.negro_boton.setText(QtGui.QApplication.translate("Form", "Black", None, QtGui.QApplication.UnicodeUTF8))
@@ -322,5 +327,5 @@ class Ui_Form(object):
         self.quitar_boton.setText(QtGui.QApplication.translate("Form", "Remove", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_12.setTitle(QtGui.QApplication.translate("Form", "Trim Image", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("Form", "Fuzz:", None, QtGui.QApplication.UnicodeUTF8))
-        self.auto_boton.setText(QtGui.QApplication.translate("Form", "Auto", None, QtGui.QApplication.UnicodeUTF8))
+        self.auto_boton.setText(QtGui.QApplication.translate("Form", "Trim", None, QtGui.QApplication.UnicodeUTF8))
 
