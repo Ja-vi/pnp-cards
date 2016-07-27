@@ -90,6 +90,10 @@ class Card(object):
 			self.border = None
 			self.changed = True
 
+	def trim(self, fuzz=13):
+		self.img.trim(fuzz=fuzz)
+		self.reset_coords()
+
 	def save_as(self, filename):
 		"""Save this card in a file named *filename*"""
 		self.img.save(filename = filename)
@@ -219,6 +223,11 @@ class Deck(object):
 		for c in self.cards:
 			c.del_border()
 
+	def trim(self, fuzz=13):
+		"""Trim all the cards with a *fuzz* factor of similitude between colours"""
+		for c in self.cards
+			c.trim(fuzz)
+
 class Printer(object):
 	"""For printing in diferent card formats and sizes the associated deck"""
 	def __init__(self, *args, **kwargs):
@@ -226,8 +235,9 @@ class Printer(object):
 		if card_size is present I have to join the elements of the deck following the premises"""
 		self.printer = QPrinter(QPrinter.HighResolution)
 		self.printer.setOutputFormat(QPrinter.PdfFormat)
-		self.printer.setOutputFilename(kwargs["print_path"])
-		pass
+		self.printer.setOrientation(getattr(QPrinter, kwargs["orientation"]))
+		self.printer.setOutputFileName(kwargs["print_path"])
+		self.printer.setPaperSize(getattr(QPrinter, kwargs["paper_size"]))
 
 ################## OLD #####################
 
@@ -255,6 +265,7 @@ class MainWindow(QMainWindow, Central):
 		self.blanco_boton.clicked.connect(self.handler_white_borders)
 		self.quitar_boton.clicked.connect(self.handler_delete_borders)
 		self.guardar_como_boton.clicked.connect(self.handler_save_as)
+		self.auto_boton.clicked.connect(self.handler_trim)
 
 	def all_selected(self):
 		return self.todas_radio.isChecked()
@@ -266,6 +277,16 @@ class MainWindow(QMainWindow, Central):
 			self.complete_percent()
 		else:
 			self.deck[self.preview_slider.value()].del_border()
+		self.preview()
+
+	def handler_trim(self):
+		fuzz = self.umbral_spin_2.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.trim(fuzz)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].trim(fuzz)
 		self.preview()
 
 	def handler_split(self):
