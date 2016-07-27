@@ -56,6 +56,9 @@ class Card(object):
 		self.changed = True
 		self.pixmap()
 
+	def __del__(self):
+		self.img.destroy()
+
 	@set_changed
 	def reset_coords(self):
 		self.img.reset_coords()
@@ -66,7 +69,8 @@ class Card(object):
 		if self.border is not None:
 			self.del_border()
 		self.border = border
-		self.img.border(Color(self.border.colour), self.border.wide, self.border.wide)
+		with Color(self.border.colour) as colour:
+			self.img.border(colour, self.border.wide, self.border.wide)
 
 	def crop(self, *args, **kwargs):
 		"""Crop this card *top*, *bottom*, *left* and *right* pixels"""
@@ -99,10 +103,10 @@ class Card(object):
 		res = []
 		for i in range(rows):
 			for j in range(cols):
-				clon = self.img.clone()
-				clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
-				clon.reset_coords()
-				res.append(Card(clon))
+				with self.img.clone() as clon:
+					clon.crop(top=i*cardHight+i*separation, width=cardWidth, left=j*cardWidth+j*separation, height=cardHight)
+					clon.reset_coords()
+					res.append(Card(image=clon))
 		return Deck(res)
 
 	@set_changed
@@ -136,7 +140,7 @@ class Deck(object):
 
 	def load_from_pdf(self, filename):
 		"""Loads all the cards from a pdf with pages compound of images"""
-		with Image(filename=filename, resolution=100) as pdf:
+		with Image(filename=filename, resolution=200) as pdf:
 			for page in pdf.sequence:
 				with Image(page).convert('png') as new:
 					self.append(Card(image=new))
@@ -180,20 +184,18 @@ class Deck(object):
 		numcards = len(self) / (fils * cols)
 		rest = len(self) % (fils * cols)
 		format = self[0].img.format
-		with self[0].img.clone() as clon:
-			clon.clear()
-			while (rest):
-				self.append(self[0])
-				rest -= 1
+		while (rest):
+			self.append(self[0])
+			rest -= 1
 		numcards = len(self) / (fils * cols)
 		w = self[0].img.width
 		h = self[0].img.height
 		for c in range(numcards):
-			joint = Image(width = w * cols + sep * (cols-1), height = h * fils + sep * (fils-1))
-			for i in range(fils):
-				for j in range(cols):
-					joint.composite(self[i*cols+j].img, top=h*i, left=w*j)
-			newdeck.append(Card(blob=joint.make_blob(format)))
+			with Image(width = w * cols + sep * (cols-1), height = h * fils + sep * (fils-1)) as joint:
+				for i in range(fils):
+					for j in range(cols):
+						joint.composite(self[i*cols+j].img, top=(h+sep)*i, left=(w+sep)*j)
+				newdeck.append(Card(blob=joint.make_blob(format)))
 		self.clear()
 		self.extend(newdeck)
 
@@ -246,6 +248,7 @@ class MainWindow(QMainWindow, Central):
 		self.negro_boton.clicked.connect(self.handler_black_borders)
 		self.blanco_boton.clicked.connect(self.handler_white_borders)
 		self.quitar_boton.clicked.connect(self.handler_delete_borders)
+		self.guardar_como_boton.clicked.connect(self.handler_save_as)
 
 	def all_selected(self):
 		return self.todas_radio.isChecked()
@@ -295,10 +298,33 @@ class MainWindow(QMainWindow, Central):
 		self.preview(0)
 		self.say("Hecho")
 
-	def saveimgs(self):
-		name = QFileDialog.getSaveFileName(self, "Nombre del fichero a guardar", "./")
-		self.cv.setBaseName(str(name))
-		self.cv.writePngFiles()
+	def handler_save_as(self):
+		name = QFileDialog.getSaveFileName(self, "Save as", "./")
+		format = str(self.format_combo.currentText())
+		card_size = str(self.card_size_combo.currentText())
+		orientation = str(self.orientation_combo.currentText())
+		paper_size = str(self.paper_size_combo.currentText())
+		if format == "Separated images":
+			num = 1
+			for c in self.deck:
+				c.save_as("".join([str(name),str(num),".",c.img.format]))
+				num += 1
+		elif format == "Pdf from images":
+			p = Printer(self.deck, card_size, paper_size, orientation)
+			#begin printing
+			#loop
+				#make image(composite) and print it
+				#next page
+			#end printing
+			pass
+		elif format == "Pdf from grid":
+			p = Printer(self.deck, card_size, paper_size, orientation)
+			#begin printing
+			#loop
+				#print image
+				#next page
+			#end printing
+			pass
 
 	def handler_delete_card(self):
 		num = self.preview_slider.value()

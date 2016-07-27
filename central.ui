@@ -126,25 +126,154 @@
      <string>Save as</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox">
+   <widget class="QComboBox" name="paper_size_combo">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>30</y>
+      <width>51</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>4</number>
+    </property>
+    <item>
+     <property name="text">
+      <string>A0</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A1</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A2</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A3</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A4</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A5</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>A6</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="format_combo">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>30</y>
-      <width>221</width>
+      <width>151</width>
       <height>31</height>
      </rect>
     </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <item>
+     <property name="text">
+      <string>Pdf from images</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Pdf from grid</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Separated images</string>
+     </property>
+    </item>
    </widget>
-   <widget class="QComboBox" name="comboBox_2">
+   <widget class="QComboBox" name="card_size_combo">
     <property name="geometry">
      <rect>
-      <x>250</x>
+      <x>340</x>
       <y>30</y>
-      <width>221</width>
+      <width>151</width>
       <height>31</height>
      </rect>
     </property>
+    <property name="currentIndex">
+     <number>3</number>
+    </property>
+    <item>
+     <property name="text">
+      <string>Jumbo (3.5&quot; w : 5.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Tarot (2.75&quot; w : 4.75&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Square (3.5&quot; w : 3.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Poker (2.5&quot; w : 3.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Bridge (2.25&quot; w : 3.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Biz (2&quot; w : 3.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Mini (1.75&quot; w : 2.5&quot; l)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Micro (1.25&quot; w : 1.75&quot; l)</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="orientation_combo">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>30</y>
+      <width>101</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <item>
+     <property name="text">
+      <string>Portrait</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Landscape</string>
+     </property>
+    </item>
    </widget>
   </widget>
   <widget class="Line" name="line_4">

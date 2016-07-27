@@ -3,7 +3,7 @@
 all: ui exe
 
 exe:
-	python main.py
+	python pnp-cards.py
 
 ui: central.ui
 	pyuic4 central.ui -o window.py
