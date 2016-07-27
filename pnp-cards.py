@@ -23,7 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 from sys import argv
 
 #Graphics
-from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap
+from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap, QPrinter
 from PyQt4.QtCore import QSettings, pyqtSlot
 from window import Ui_Form as Central
 
@@ -221,7 +221,13 @@ class Deck(object):
 
 class Printer(object):
 	"""For printing in diferent card formats and sizes the associated deck"""
-	pass
+	def __init__(self, *args, **kwargs):
+		"""kwargs: deck, card_size, paper_size, orientation, print_path
+		if card_size is present I have to join the elements of the deck following the premises"""
+		self.printer = QPrinter(QPrinter.HighResolution)
+		self.printer.setOutputFormat(QPrinter.PdfFormat)
+		self.printer.setOutputFilename(kwargs["print_path"])
+		pass
 
 ################## OLD #####################
 
@@ -310,7 +316,10 @@ class MainWindow(QMainWindow, Central):
 				c.save_as("".join([str(name),str(num),".",c.img.format]))
 				num += 1
 		elif format == "Pdf from images":
-			p = Printer(self.deck, card_size, paper_size, orientation)
+			p = Printer(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
+					orientation = str(self.orientation_combo.currentText()),
+					paper_size = str(self.paper_size_combo.currentText()),
+					print_path = str(name) + ".pdf")
 			#begin printing
 			#loop
 				#make image(composite) and print it
@@ -318,7 +327,9 @@ class MainWindow(QMainWindow, Central):
 			#end printing
 			pass
 		elif format == "Pdf from grid":
-			p = Printer(self.deck, card_size, paper_size, orientation)
+			p = Printer(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
+					paper_size = str(self.paper_size_combo.currentText()),
+					print_path = str(name) + ".pdf")
 			#begin printing
 			#loop
 				#print image
