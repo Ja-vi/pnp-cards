@@ -44,9 +44,9 @@ class MainWindow(QMainWindow, Central):
 
 	def handler_reset(self):
 		self.deck = Deck([])
+		self.printer = Printer()
 		self.fichero_edit.setText("")
-		self.scene = QGraphicsScene()
-		self.preview_view.setScene(self.scene)
+		self.preview_view.setScene(self.printer.scene)
 		self.preview_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 		self.preview_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 		self.preview_view.show()
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow, Central):
 		self.elegir_boton.clicked.connect(self.handler_open_files)
 		self.dividir_boton.clicked.connect(self.handler_split)
 		self.unir_boton.clicked.connect(self.handler_join)
-		self.preview_slider.valueChanged.connect(self.__preview__)
+		self.preview_slider.valueChanged.connect(self.preview)
 		self.borrar_boton.clicked.connect(self.handler_delete_card)
 		self.negro_boton.clicked.connect(self.handler_black_borders)
 		self.blanco_boton.clicked.connect(self.handler_white_borders)
@@ -182,6 +182,7 @@ class MainWindow(QMainWindow, Central):
 		names += ", ".join([str(el)[str(el).rfind("/")+1:] for el in files])
 		self.fichero_edit.setText(names)
 		self.reset_percent()
+		print "pre-deck"
 		for file in files:
 			self.deck.load(file)
 			self.next_percent(files)
@@ -196,37 +197,23 @@ class MainWindow(QMainWindow, Central):
 		card_size = str(self.card_size_combo.currentText())
 		orientation = str(self.orientation_combo.currentText())
 		paper_size = str(self.paper_size_combo.currentText())
+		self.percent(30)
 		if format == "Separated images":
-			num = 1
-			self.reset_percent()
-			for c in self.deck:
-				c.save_as("".join([str(name),str(num),".",c.img.format.lower()]))
-				self.next_percent()
-				num += 1
-			self.complete_percent()
+			self.printer.config(deck = self.deck, print_path = str(name))
+			self.percent(35)
+			self.printer.print_images()
 		elif format == "Pdf from images":
-			self.percent(50)
-			p = Printer(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
+			self.printer.config(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
 					orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
 					print_path = str(name) + ".pdf")
-			#begin printing
-			#loop
-				#make image(composite) and print it
-				#next page
-			#end printing
-			pass
+			self.percent(35)
 		elif format == "Pdf from grid":
-			p = Printer(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
+			self.printer.config(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
 					print_path = str(name) + ".pdf")
-			p.print_all(self)
-			#begin printing
-			#loop
-				#print image
-				#next page
-			#end printing
-			pass
+			self.percent(35)
+			self.printer.print_grid()
 		self.percent(100)
 		self.say("Save Completed")
 
@@ -270,24 +257,11 @@ class MainWindow(QMainWindow, Central):
 		self.percent(100)
 
 	def preview(self, num=None):
-		if len(self.deck) > 0:
-			self.preview_slider.setMaximum(len(self.deck)-1)
-		else:
-			self.preview_slider.setMaximum(0)
-		if num is not None:
-			self.__preview__(num)
-		else:
-			self.__preview__(self.preview_slider.value())
-
-	def __preview__(self, num):
-		try:
-			self.scene.clear()
-			pm = self.scene.addPixmap(self.deck[num].pixmap())
-			self.preview_view.fitInView(pm)
-		except:
-			self.scene.clear()
-			pm = self.scene.addText("Image not available")
-			self.preview_view.fitInView(pm)
+		ldeck = len(self.deck)
+		self.preview_slider.setMaximum((ldeck-1) if ldeck > 0 else 0)
+		num = self.preview_slider.value() if num is None else num
+		pm = self.printer.preview_card(self.deck[num])
+		self.preview_view.fitInView(pm)
 
 #	@pyqtSlot()
 #	def closeEvent(self, e):

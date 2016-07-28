@@ -35,7 +35,7 @@ class Printer(object):
 	card_sizes = {"Jumbo":(3.5,5.5), "Tarot":(2.75,4.75), "Square":(3.5,3.5), "Poker":(2.5,3.5),
 			 "Bridge":(2.25,3.5), "Biz":(2,3.5), "Mini":(1.75,2.5), "Micro":(1.25,1.75)}
 
-	def __init__(self)
+	def __init__(self):
 		self.deck = None
 		self.printer = None
 		self.scene = QGraphicsScene()
@@ -105,51 +105,4 @@ class Printer(object):
 		except:
 			self.scene.clear()
 			ret = self.scene.addText("Image not available")
-
-################## OLD #####################
-
-class MainWindow():
-
-	def __init__(self):
-		self.handler_reset()
-
-	def handler_reset(self):
-		self.printer = Printer()
-		self.preview_view.setScene(self.printer.scene)
-		self.preview_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-		self.preview_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-		self.preview_view.show()
-		self.say("Ready")
-		self.percent(0)
-
-	def handler_save_as(self):
-		self.percent(0)
-		name = QFileDialog.getSaveFileName(self, "Save as", "./")
-		format = str(self.format_combo.currentText())
-		card_size = str(self.card_size_combo.currentText())
-		orientation = str(self.orientation_combo.currentText())
-		paper_size = str(self.paper_size_combo.currentText())
-		if format == "Separated images":
-			self.printer.config(deck = self.deck, print_path = str(name))
-			self.printer.print_images()
-		elif format == "Pdf from images":
-			self.percent(50)
-			self.printer.config(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
-					orientation = str(self.orientation_combo.currentText()),
-					paper_size = str(self.paper_size_combo.currentText()),
-					print_path = str(name) + ".pdf")
-		elif format == "Pdf from grid":
-			self.printer.config(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
-					paper_size = str(self.paper_size_combo.currentText()),
-					print_path = str(name) + ".pdf")
-			self.printer.print_grid()
-		self.percent(100)
-		self.say("Save Completed")
-
-	def preview(self, num=None):
-		ldeck = len(self.deck)
-		self.preview_slider.setMaximum((ldeck-1) if ldeck > 0 else 0)
-		num = self.preview_slider.value() if num is None else num
-		pm = self.printer.preview_card(self.deck[num])
-		self.preview_view.fitInView(pm)
-
+		return ret
