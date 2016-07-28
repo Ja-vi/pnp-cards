@@ -23,8 +23,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 from sys import argv
 
 #Graphics
-from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap, QPrinter
-from PyQt4.QtCore import QSettings, pyqtSlot
+from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QImage, QPixmap, QPrinter, QGraphicsScene, QGraphicsView, QPainter
+from PyQt4.QtCore import QSettings, pyqtSlot, Qt
 from window import Ui_Form as Central
 
 #Image manipulation
@@ -182,7 +182,9 @@ class Deck(object):
 		"""Add a new card to the deck"""
 		self.cards.append(card)
 
-	def join(self, fils, cols, sep):
+	### Multi card methods ###
+
+	def join(self, fils, cols, sep=0, **kwargs):
 		"""Set the cards to be the junction of the previous cards"""
 
 		rest = len(self) % (fils * cols)
@@ -201,12 +203,13 @@ class Deck(object):
 				for i in range(fils):
 					for j in range(cols):
 						joint.composite(self[c*fils*cols + i*cols + j].img, top=(h+sep)*i, left=(w+sep)*j)
+						if "call" in kwargs:
+							if callable(kwargs["call"]):
+								kwargs["call"]()
 				newdeck.append(Card(blob=joint.make_blob(format)))
 
 		self.clear()
 		self.extend(newdeck)
-
-	### Multi card methods ###
 
 	def split(self, nrows, ncols, sep, **kwargs):
 		newcards = Deck([])
@@ -243,6 +246,17 @@ class Deck(object):
 				if callable(kwargs["call"]):
 					kwargs["call"]()
 
+	def crop(self, **kwargs):
+		"""Crop all the cards by kwargs px"""
+		notif = None
+		if "call" in kwargs:
+			notif = kwargs["call"]
+			del kwargs["call"]
+		for c in self.cards:
+			c.crop(**kwargs)
+			if callable(notif):
+				notif()
+
 class Printer(object):
 	"""For printing in diferent card formats and sizes the associated deck"""
 	def __init__(self, *args, **kwargs):
@@ -254,6 +268,28 @@ class Printer(object):
 		self.printer.setOutputFileName(kwargs["print_path"])
 		self.printer.setPaperSize(getattr(QPrinter, kwargs["paper_size"]))
 
+		self.paint = QPainter()
+
+		self.deck = kwargs["deck"]
+
+	def print_page(self, main_window):
+		main_window.preview_view.render(self.paint)
+
+	def begin(self):
+		self.paint.begin(self.printer)
+
+	def end(self):
+		self.paint.end()
+
+	def print_all(self, main_window):
+		self.begin()
+		for i in range(len(self.deck)):
+			main_window.__preview__(i)
+			self.print_page(main_window)
+			if i < len(self.deck)-1:
+				self.printer.newPage()
+		self.end()
+
 ################## OLD #####################
 
 class MainWindow(QMainWindow, Central):
@@ -264,14 +300,22 @@ class MainWindow(QMainWindow, Central):
 		self.setupUi(self)
 		#self.readSettings()
 		self.show()
-		self.deck = Deck([])
 		self.init_signals()
-		self.say("Cargado")
-		self.percent(100)
+		self.handler_reset()
+
+	def handler_reset(self):
+		self.deck = Deck([])
+		self.fichero_edit.setText("")
+		self.scene = QGraphicsScene()
+		self.preview_view.setScene(self.scene)
+		self.preview_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self.preview_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self.preview_view.show()
+		self.say("Ready")
+		self.percent(0)
 
 	def init_signals(self):
 		self.elegir_boton.clicked.connect(self.handler_open_files)
-		#self.guardar_como_boton.clicked.connect(self.saveimgs)
 		self.dividir_boton.clicked.connect(self.handler_split)
 		self.unir_boton.clicked.connect(self.handler_join)
 		self.preview_slider.valueChanged.connect(self.__preview__)
@@ -281,9 +325,65 @@ class MainWindow(QMainWindow, Central):
 		self.quitar_boton.clicked.connect(self.handler_delete_borders)
 		self.guardar_como_boton.clicked.connect(self.handler_save_as)
 		self.auto_boton.clicked.connect(self.handler_trim)
+		self.top_crop.clicked.connect(self.handler_crop_top)
+		self.right_crop.clicked.connect(self.handler_crop_right)
+		self.bottom_crop.clicked.connect(self.handler_crop_bottom)
+		self.left_crop.clicked.connect(self.handler_crop_left)
+		self.all_crop.clicked.connect(self.handler_crop_all)
+		self.reset_boton.clicked.connect(self.handler_reset)
 
 	def all_selected(self):
 		return self.todas_radio.isChecked()
+
+	def handler_crop_top(self):
+		px = self.crop_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.crop(top=px, call=self.next_percent)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].crop(top=px)
+		self.preview()
+
+	def handler_crop_right(self):
+		px = self.crop_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.crop(right=px, call=self.next_percent)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].crop(right=px)
+		self.preview()
+
+	def handler_crop_bottom(self):
+		px = self.crop_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.crop(bottom=px, call=self.next_percent)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].crop(bottom=px)
+		self.preview()
+
+	def handler_crop_left(self):
+		px = self.crop_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.crop(left=px, call=self.next_percent)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].crop(left=px)
+		self.preview()
+
+	def handler_crop_all(self):
+		px = self.crop_spin.value()
+		if self.all_selected():
+			self.reset_percent()
+			self.deck.crop(top=px, bottom=px, left=px, right=px, call=self.next_percent)
+			self.complete_percent()
+		else:
+			self.deck[self.preview_slider.value()].crop(top=px, left=px, right=px, bottom=px)
+		self.preview()
 
 	def handler_delete_borders(self):
 		if self.all_selected():
@@ -316,20 +416,19 @@ class MainWindow(QMainWindow, Central):
 			card = self.deck.del_card(self.preview_slider.value())
 			self.deck.extend(card.split(n, m, sep))
 		self.preview(0)
-		self.say("Completed")
+		self.say("Splited")
 
 	def handler_join(self):
 		n = self.n_spin_2.value()
 		m = self.m_spin_2.value()
 		sep = self.sep_spin.value()
 		self.reset_percent()
-		self.deck.join(n, m, sep)
+		self.deck.join(n, m, sep, call=self.next_percent)
 		self.complete_percent()
 		self.preview(0)
-		self.say("Completed")
+		self.say("Merged")
 
 	def handler_open_files(self):
-
 		def getFiles():
 			files = QFileDialog.getOpenFileNames(self, "Elige uno o mas ficheros", "./", "Images (*.png *.jpg);; PDF (*.pdf)")
 			return files
@@ -337,8 +436,11 @@ class MainWindow(QMainWindow, Central):
 		files = getFiles()
 		if len(files) < 1:
 			return
-		names = '"' + str(files[0])[str(files[0]).rfind("/")+1:] +'"'
-		for el in files[1:]: names += ', "' + str(el)[str(el).rfind("/")+1:] + '"'
+		prev = str(self.fichero_edit.text())
+		names = ""
+		if prev != "":
+			names = prev + ", "
+		names += ", ".join([str(el)[str(el).rfind("/")+1:] for el in files])
 		self.fichero_edit.setText(names)
 		self.reset_percent()
 		for file in files:
@@ -346,9 +448,10 @@ class MainWindow(QMainWindow, Central):
 			self.next_percent(files)
 		self.complete_percent()
 		self.preview(0)
-		self.say("Hecho")
+		self.say("Loaded")
 
 	def handler_save_as(self):
+		self.percent(0)
 		name = QFileDialog.getSaveFileName(self, "Save as", "./")
 		format = str(self.format_combo.currentText())
 		card_size = str(self.card_size_combo.currentText())
@@ -356,10 +459,14 @@ class MainWindow(QMainWindow, Central):
 		paper_size = str(self.paper_size_combo.currentText())
 		if format == "Separated images":
 			num = 1
+			self.reset_percent()
 			for c in self.deck:
-				c.save_as("".join([str(name),str(num),".",c.img.format]))
+				c.save_as("".join([str(name),str(num),".",c.img.format.lower()]))
+				self.next_percent()
 				num += 1
+			self.complete_percent()
 		elif format == "Pdf from images":
+			self.percent(50)
 			p = Printer(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
 					orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
@@ -374,17 +481,20 @@ class MainWindow(QMainWindow, Central):
 			p = Printer(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
 					print_path = str(name) + ".pdf")
+			p.print_all(self)
 			#begin printing
 			#loop
 				#print image
 				#next page
 			#end printing
 			pass
+		self.percent(100)
+		self.say("Save Completed")
 
 	def handler_delete_card(self):
 		num = self.preview_slider.value()
 		self.deck.del_card(num)
-		self.say("Imagen eliminada")
+		self.say("Card deleted")
 		if num < len(self.deck):
 			self.preview(num)
 		else:
@@ -392,12 +502,16 @@ class MainWindow(QMainWindow, Central):
 
 	def handler_black_borders(self):
 		wide = self.border_spin.value()
-		self.deck.borders(Border.black, wide)
+		self.reset_percent()
+		self.deck.borders(Border.black, wide, call=self.next_percent)
+		self.complete_percent()
 		self.preview()
 
 	def handler_white_borders(self):
 		wide = self.border_spin.value()
-		self.deck.borders(Border.white, wide)
+		self.reset_percent()
+		self.deck.borders(Border.white, wide, call=self.next_percent)
+		self.complete_percent()
 		self.preview()
 
 	def say(self, text):
@@ -427,11 +541,14 @@ class MainWindow(QMainWindow, Central):
 			self.__preview__(self.preview_slider.value())
 
 	def __preview__(self, num):
-		self.preview_label.clear()
 		try:
-			self.preview_label.setPixmap(self.deck[num].pixmap())
+			self.scene.clear()
+			pm = self.scene.addPixmap(self.deck[num].pixmap())
+			self.preview_view.fitInView(pm)
 		except:
-			self.preview_label.setText("Image not available")
+			self.scene.clear()
+			pm = self.scene.addText("Image not available")
+			self.preview_view.fitInView(pm)
 
 #	@pyqtSlot()
 #	def closeEvent(self, e):

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>909</width>
-    <height>516</height>
+    <width>902</width>
+    <height>519</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,9 +71,9 @@
    <widget class="QLineEdit" name="fichero_edit">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>90</x>
       <y>30</y>
-      <width>191</width>
+      <width>111</width>
       <height>31</height>
      </rect>
     </property>
@@ -84,10 +84,23 @@
      <bool>true</bool>
     </property>
     <property name="placeholderText">
-     <string>Elige los ficheros de origen</string>
+     <string>Imported files</string>
     </property>
    </widget>
    <widget class="QPushButton" name="elegir_boton">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Load</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="reset_boton">
     <property name="geometry">
      <rect>
       <x>210</x>
@@ -97,7 +110,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Load</string>
+     <string>Reset</string>
     </property>
    </widget>
   </widget>
@@ -275,6 +288,12 @@
      </property>
     </item>
    </widget>
+   <zorder>guardar_como_boton</zorder>
+   <zorder>paper_size_combo</zorder>
+   <zorder>format_combo</zorder>
+   <zorder>card_size_combo</zorder>
+   <zorder>orientation_combo</zorder>
+   <zorder>preview_view</zorder>
   </widget>
   <widget class="Line" name="line_4">
    <property name="geometry">
@@ -434,39 +453,14 @@
     </rect>
    </property>
    <property name="title">
-    <string>Preview (without real proportions)</string>
+    <string>Preview</string>
    </property>
-   <widget class="QLabel" name="preview_label">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>30</y>
-      <width>261</width>
-      <height>381</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="scaledContents">
-     <bool>true</bool>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
    <widget class="QSlider" name="preview_slider">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>430</y>
-      <width>221</width>
+      <width>211</width>
       <height>20</height>
      </rect>
     </property>
@@ -485,6 +479,16 @@
     </property>
     <property name="text">
      <string>X</string>
+    </property>
+   </widget>
+   <widget class="QGraphicsView" name="preview_view">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>261</width>
+      <height>381</height>
+     </rect>
     </property>
    </widget>
   </widget>
@@ -532,7 +536,7 @@
      <number>500</number>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="left_crop">
     <property name="geometry">
      <rect>
       <x>100</x>
@@ -545,7 +549,7 @@
      <string>Left</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="top_crop">
     <property name="geometry">
      <rect>
       <x>160</x>
@@ -558,7 +562,7 @@
      <string>Top</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="right_crop">
     <property name="geometry">
      <rect>
       <x>230</x>
@@ -571,7 +575,7 @@
      <string>Right</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="bottom_crop">
     <property name="geometry">
      <rect>
       <x>160</x>
@@ -584,7 +588,7 @@
      <string>Bottom</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="quitar_boton_2">
+   <widget class="QPushButton" name="all_crop">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -683,7 +687,7 @@
     <rect>
      <x>10</x>
      <y>470</y>
-     <width>901</width>
+     <width>881</width>
      <height>20</height>
     </rect>
    </property>
@@ -696,7 +700,7 @@
     <rect>
      <x>320</x>
      <y>490</y>
-     <width>581</width>
+     <width>571</width>
      <height>20</height>
     </rect>
    </property>
