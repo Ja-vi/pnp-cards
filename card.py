@@ -55,6 +55,12 @@ class Card(object):
 	def __del__(self):
 		self.img.destroy()
 
+	def __enter__(self):
+		return self.clone()
+
+	def __exit__(self, type, value, traceback):
+		pass
+
 	def format(self, fmt=None):
 		if fmt is None:
 			return self.img.format.lower()
@@ -63,10 +69,19 @@ class Card(object):
 
 	def resize(self, width, height):
 		"""Resize this card to (width, height) inches"""
-		res = self.img.resolution
-		print res
-		self.img.resize(int(width*res[0]), int(height*res[1]))
-		print self.img.resolution
+		newres = 300
+		print self.img.resolution, self.img.size
+		self.img.transform(str(width*newres) + "x" + str(height*newres) + "!")
+		#self.img.resize(int(width*300), int(height*300))
+		self.img.resolution = (newres, newres)
+		print self.img.resolution, self.img.size
+		return newres
+
+	def width(self):
+		return self.img.size[0]
+
+	def height(self):
+		return self.img.size[1]
 
 	@set_changed
 	def reset_coords(self):

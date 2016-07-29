@@ -203,7 +203,6 @@ class MainWindow(QMainWindow, Central):
 			self.printer.print_images()
 		elif format == "Pdf from images":
 			self.printer.config(deck = self.deck, card_size = str(self.card_size_combo.currentText()),
-					orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
 					print_path = str(name) + ".pdf")
 			self.percent(35)
