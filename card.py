@@ -61,6 +61,13 @@ class Card(object):
 		else:
 			self.img.format = fmt
 
+	def resize(self, width, height):
+		"""Resize this card to (width, height) inches"""
+		res = self.img.resolution
+		print res
+		self.img.resize(int(width*res[0]), int(height*res[1]))
+		print self.img.resolution
+
 	@set_changed
 	def reset_coords(self):
 		self.img.reset_coords()
@@ -119,6 +126,11 @@ class Card(object):
 	def round_corners(self):
 		"""Round the corners of the card (setting them to alpha)"""
 		pass
+
+	def clone(self):
+		c = Card(image=self.img.clone())
+		c.border = self.border
+		return c
 
 	def pixmap(self):
 		"""Update and returns the pixmap (QPixmap) of the contained image"""

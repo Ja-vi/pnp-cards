@@ -24,7 +24,7 @@ from sys import argv
 
 #Graphics
 from PyQt4.QtGui import QFileDialog, QPrinter, QGraphicsScene, QGraphicsView, QPainter
-from PyQt4.QtCore import QSettings, pyqtSlot, Qt
+from PyQt4.QtCore import QSettings, pyqtSlot, Qt, QRectF
 
 from card import Card, Border
 from deck import Deck
@@ -34,10 +34,10 @@ class Printer(object):
 
 	card_sizes = {"Jumbo":(3.5,5.5), "Tarot":(2.75,4.75), "Square":(3.5,3.5), "Poker":(2.5,3.5),
 			 "Bridge":(2.25,3.5), "Biz":(2,3.5), "Mini":(1.75,2.5), "Micro":(1.25,1.75)}
+	paper_sizes = {"A0":(),"A1":(),"A2":(),"A3":(),"A4":(8.3,11.7)}
 
 	def __init__(self):
 		self.deck = None
-		self.printer = None
 		self.scene = QGraphicsScene()
 		self.orientation = getattr(QPrinter, "Portrait")
 		self.path = "output.pdf"
@@ -48,48 +48,59 @@ class Printer(object):
 		"""kwargs: deck, card_size, paper_size, orientation, print_path
 		if card_size is present I have to join the elements of the deck following the premises"""
 		if "orientation" in kwargs:
-			self.orientation = getattr(QPrinter, kwargs["orientation"])
+			self.orientation = kwargs["orientation"]
 		if "card_size" in kwargs:
 			self.card_size = Printer.card_sizes[kwargs["card_size"][:kwargs["card_size"].find(" ")]]
 		if "print_path" in kwargs:
 			self.path = kwargs["print_path"]
 		if "paper_size" in kwargs:
-			self.paper = getattr(QPrinter, kwargs["paper_size"])
+			self.paper = kwargs["paper_size"]
 		if "deck" in kwargs:
 			self.deck = kwargs["deck"]
 
 	def print_grid(self):
-		self.printer = QPrinter(QPrinter.HighResolution)
-		self.printer.setOutputFormat(QPrinter.PdfFormat)
-		self.printer.setOrientation(self.orientation)
-		self.printer.setOutputFileName(self.path)
-		self.printer.setPaperSize(self.paper)
+		printer = QPrinter(QPrinter.HighResolution)
+		printer.setOutputFormat(QPrinter.PdfFormat)
+		printer.setOrientation(getattr(QPrinter, self.orientation))
+		printer.setOutputFileName(self.path)
+		printer.setPaperSize(getatte(QPrinter, self.paper))
 		if self.deck is not None:
-			with QPainter() as paint:
-				self.paint.begin(self.printer)
+			with QPainter(printer) as paint:
 				first = True
 				for c in self.deck:
 					if not first:
-						self.printer.newPage()
+						printer.newPage()
 					first = False
 					self.preview_card(c)
-					self.scene.render(self.paint)
-				self.paint.end()
-		self.printer = None
+					self.scene.render(paint)
+
+	def max_cards(self):
+		"""Taking in count the card_size, paper_size and orientation returns the max number of cards per page"""
+		if self.orientation == "Portrait":
+			pw = self.paper_sizes[self.paper][0]
+			ph = self.paper_sizes[self.paper][1]
+		else:
+			ph = self.paper_sizes[self.paper][0]
+			pw = self.paper_sizes[self.paper][1]
+		return int((pw//self.card_size[0])*(ph//self.card_size[1]))
 
 	def print_pdf(self):
-		self.printer = QPrinter(QPrinter.HighResolution)
-		self.printer.setOutputFormat(QPrinter.PdfFormat)
-		self.printer.setOrientation(self.orientation)
-		self.printer.setOutputFileName(self.path)
-		self.printer.setPaperSize(self.paper)
-		resized = Deck([])
-		for c in self.deck:
-			resized.append(c.clone().resize(*self.card_size))
+		print self.max_cards()
+		return
+		printer = QPrinter(QPrinter.HighResolution)
+		printer.setOutputFormat(QPrinter.PdfFormat)
+		printer.setOrientation(self.orientation)
+		printer.setOutputFileName(self.path)
+		printer.setPaperSize(self.paper)
 		if self.deck is not None:
-			pass
-		self.printer = None
-
+			with QPainter(printer) as paint:
+				first = True
+				for c in self.deck:
+					if not first:
+						printer.newPage()
+					first = False
+					self.preview_card(c)
+					self.scene.render(paint, target=QRectF(0,0,self.card_size[0]*printer.resolution(), self.card_size[1]*printer.resolution()))
 
 	def print_images(self):
 		if self.deck is not None:

@@ -182,7 +182,6 @@ class MainWindow(QMainWindow, Central):
 		names += ", ".join([str(el)[str(el).rfind("/")+1:] for el in files])
 		self.fichero_edit.setText(names)
 		self.reset_percent()
-		print "pre-deck"
 		for file in files:
 			self.deck.load(file)
 			self.next_percent(files)
@@ -208,6 +207,7 @@ class MainWindow(QMainWindow, Central):
 					paper_size = str(self.paper_size_combo.currentText()),
 					print_path = str(name) + ".pdf")
 			self.percent(35)
+			self.printer.print_pdf()
 		elif format == "Pdf from grid":
 			self.printer.config(deck = self.deck, orientation = str(self.orientation_combo.currentText()),
 					paper_size = str(self.paper_size_combo.currentText()),
