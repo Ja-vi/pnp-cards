@@ -23,12 +23,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 from sys import argv
 
 #Graphics
-from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QPrinter, QGraphicsScene, QGraphicsView, QPainter
+from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog
 from PyQt4.QtCore import QSettings, pyqtSlot, Qt
 from window import Ui_Form as Central
 
-from cards_fw import Card, Border, Deck
-from printer import Printer
+#Print and Play own library (separated git project)
+from pnp import Card, Border, Deck, Printer
 
 class MainWindow(QMainWindow, Central):
 
