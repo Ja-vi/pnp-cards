@@ -26,8 +26,7 @@ from sys import argv
 from PyQt4.QtGui import QFileDialog, QPrinter, QGraphicsScene, QGraphicsView, QPainter
 from PyQt4.QtCore import QSettings, pyqtSlot, Qt, QRectF
 
-from card import Card, Border
-from deck import Deck
+from cards_fw import Card, Border, Deck
 
 class Printer(object):
 	"""For printing in diferent card formats and sizes the associated deck, be it to the screen or pdfs or image files"""
@@ -119,20 +118,19 @@ class Printer(object):
 				ind = 0
 				resol = printer.resolution()
 				for c in self.deck:
-					with c as clon:
-						resclon = clon.resize(self.card_size[0], self.card_size[1])
+						c.resize(self.card_size[0], self.card_size[1])
 						if ind == guide["max"]:
 							printer.newPage()
 							ind = 0
 
-						col = ind % guide["vertical"]
+						col = ind % guide["horizontal"]
 						fil = ind // guide["horizontal"]
 						print ind, fil, col
 						target = QRectF((col)*self.card_size[0]*resol, (fil)*self.card_size[1]*resol,
 									self.card_size[0]*resol, self.card_size[1]*resol)
 
-						self.preview_card(clon)
-						self.scene.render(paint, target=target)#, source=QRectF(0,0,clon.width(),clon.height()))
+						self.preview_card(c)
+						self.scene.render(paint, target=target, source=QRectF(0,0,c.width(),c.height()))
 						ind += 1
 
 	def print_images(self):

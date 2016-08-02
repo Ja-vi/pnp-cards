@@ -27,8 +27,7 @@ from PyQt4.QtGui import QApplication, QMainWindow, QFileDialog, QPrinter, QGraph
 from PyQt4.QtCore import QSettings, pyqtSlot, Qt
 from window import Ui_Form as Central
 
-from card import Card, Border
-from deck import Deck
+from cards_fw import Card, Border, Deck
 from printer import Printer
 
 class MainWindow(QMainWindow, Central):
